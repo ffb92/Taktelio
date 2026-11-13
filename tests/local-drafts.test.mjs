@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
-const source=fs.readFileSync(new URL('../src/local-drafts.js',import.meta.url),'utf8');
+const source=fs.readFileSync(new URL('../src/lib/local-drafts.js',import.meta.url),'utf8').replaceAll('export ','');
 function load(entries,failWrite=false){
   const data=new Map(entries);
   const context=vm.createContext({localStorage:{getItem:k=>data.get(k)??null,setItem:(k,v)=>{if(failWrite)throw Error('Quota');data.set(k,v)},removeItem:k=>data.delete(k)}});

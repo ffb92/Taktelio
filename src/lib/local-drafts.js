@@ -1,5 +1,5 @@
-const LOCAL_DRAFTS_KEY='taktelio-ai-plans';
-function loadLocalDrafts(){
+export const LOCAL_DRAFTS_KEY='taktelio-ai-plans';
+export function loadLocalDrafts(){
   try{
     const current=localStorage.getItem(LOCAL_DRAFTS_KEY);
     // Compatibility only: preserve drafts created before the Taktelio rename.

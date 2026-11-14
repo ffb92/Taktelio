@@ -19,11 +19,12 @@ Ausgangsstand: `d994898` auf `main`. Aktualisiert am 14. November 2026 für `f77
 - Lokaler Vite-Start und Darstellung der Anmeldeseite im echten Browser erfolgreich.
 - Der Ursprungsstand wurde ohne Produktionsdaten und ohne kostenpflichtige Modellaufrufe geprüft. Inzwischen sind `f81b907` und `f7757af` committed, gepusht und über Vercel veröffentlicht.
 - Produktions-Smoke-Test am 14. November 2026: Anmeldeseite HTTP 200, `/api/status` ohne Sitzung HTTP 401, öffentliche Einladungsvorschau HTTP 404 bei unbekanntem Token (Supabase-RPC erreichbar).
+- Manueller Ablauf am 14. November 2026 durch den Nutzer mit echten Konten und Mails: Anmeldung, Passwort-Zurücksetzen, Einladung und KI-Planung funktionieren.
 
 ## Noch offen
 
-- Ein vollständiger Ablauf mit echten Testkonten: Registrierung und Mailbestätigung, Session-Erneuerung, Passwort-Reset, Einladungsannahme, Generierung, Speichern und erneutes Öffnen. Dafür sind eine konfigurierte separate Supabase-Testumgebung und geeignete Konten erforderlich.
-- Die Supabase-Live-Konfiguration wurde am 14. November 2026 per `supabase config diff` gelesen: Site URL `https://www.taktelio.app`, Redirect-Allowlist mit `www`, Apex und `taktelio.vercel.app`, SMTP über Resend. Mailvorlagen, Data-API-Einstellungen und ein vollständiger E-Mail-Ablauf bleiben ungeprüft; die `?invite=*`-Muster für `www` und Apex sind seit dem 14. November 2026 in der Allowlist eingetragen.
+- Nicht ausdrücklich nachgewiesen: Registrierung mit Bestätigung in einem frischen Browser, Session-Erneuerung, Passwortänderung im angemeldeten Zustand sowie Speichern und erneutes Öffnen einer Einheit nach neuer Anmeldung. Ein kompletter Lauf mit separater Supabase-Testumgebung steht weiterhin aus.
+- Die Supabase-Live-Konfiguration wurde am 14. November 2026 per `supabase config diff` gelesen: Site URL `https://www.taktelio.app`, Redirect-Allowlist mit `www`, Apex und `taktelio.vercel.app`, SMTP über Resend. Passwort-Zurücksetzen hat am 14. November 2026 eine echte Mail zugestellt; Registrierungsvorlagen und Data-API-Einstellungen bleiben ungeprüft. Die `?invite=*`-Muster für `www` und Apex sind seit dem 14. November 2026 in der Allowlist eingetragen.
 - PGlite führt echte PostgreSQL-Policies aus, simuliert aber die Auth-Schnittstelle. Es ersetzt keinen vollständigen Supabase-Stack, kein Browser-Login und keinen Mehrverbindungs-/Lasttest.
 - Der Frischaufbau erzeugt Anwendungsschema und Grundstock, aber keine Supabase-Migrationshistorie und keine externen Projekteinstellungen. Die Produktionshistorie wurde am 14. November 2026 für die beiden manuell eingespielten Migrationen abgeglichen; der ältere Doppeleintrag `20261113131024` bleibt in der Remote-Historie.
 - Ein Linter oder Typecheck ist weiterhin nicht eingerichtet. Die automatische Basisprüfung umfasst Tests und Build.

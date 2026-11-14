@@ -43,7 +43,7 @@ Für die erste Version ist dieser vollständige Ablauf wichtiger als zusätzlich
 
 | Bereich | Vorhandener Umfang | Grenze / noch offen |
 |---|---|---|
-| Konten | Registrierung, Anmeldung, E-Mail-Bestätigung, Session-Erneuerung, Abmeldung, Passwortänderung und Reset | Vollständiger Test mit echten Konten und Mails steht aus |
+| Konten | Registrierung, Anmeldung, E-Mail-Bestätigung, Session-Erneuerung, Abmeldung, Passwortänderung und Reset | Anmeldung und Passwort-Reset am 14. November 2026 mit echten Konten und Mails bestätigt; Registrierung mit Bestätigung, Session-Erneuerung, Abmeldung und Passwortänderung nicht vollständig nachgewiesen |
 | Profil | Namen, Anzeigename, Mannschaft als Freitext und Qualifikation | Keine eigenständige Mannschaftsverwaltung |
 | Vereine | Anlegen, Umbenennen, Vereinswechsel und Rollenprüfung | Keine vollständige Oberfläche für Rollenwechsel oder Mitgliedsentfernung |
 | Einladungen | Link erstellen, Vorschau, Empfängerbindung, Annahme, Ablauf und Widerruf | Links werden manuell weitergegeben; kein automatischer Einladungsversand |
@@ -55,7 +55,7 @@ Für die erste Version ist dieser vollständige Ablauf wichtiger als zusätzlich
 | Gespeicherte Einheiten | Speichern, Liste, Öffnen, Löschen und Übernahme vollständiger lokaler Altentwürfe | Kein Kalender, keine Datumszuordnung, keine Suche und keine Duplizierfunktion |
 | Ausgabe | Druckansicht über den Browser, dadurch PDF über den Druckdialog möglich | Kein eigener PDF-Export und kein Freigabelink |
 | KI-Schutz | Serverprüfung, Kontingente, Budget, Begrenzung laufender Anfragen und idempotente Wiederholung | Pilotkonfiguration; noch kein beschlossenes Geschäftsmodell |
-| Technik | React/Vite, serverseitige API, Supabase, Vercel-Konfiguration und getrennt konfigurierbares Testprojekt | Deployment, Domain, API und Datenbankanbindung geprüft; Auth-Redirects und SMTP konfiguriert, aber nicht im vollen Ablauf getestet |
+| Technik | React/Vite, serverseitige API, Supabase, Vercel-Konfiguration und getrennt konfigurierbares Testprojekt | Deployment, Domain, API und Datenbankanbindung geprüft; Anmeldung, Passwort-Reset, Einladung und KI-Planung am 14. November 2026 manuell bestätigt |
 | Qualität | Gemeinsamer Datenvertrag, 50 bestandene Tests, Datenbanktests, Node-22-Build und lokale Browserprüfung | CI läuft bei Push und Pull Request; kein Linter/Typecheck und kein vollständiger Browser-Abnahmetest |
 | Weitere Module | Navigationsplatzhalter für Social Media und Scouting | Keine fertigen Funktionen |
 

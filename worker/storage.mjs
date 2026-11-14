@@ -15,6 +15,13 @@ export async function clubApi(request){
   if(request.method!=='GET'&&request.method!=='POST')return dbJson({error:'Methode nicht erlaubt'},405);
   if(request.method==='POST'&&request.headers.get('origin')!==new URL(request.url).origin)return dbJson({error:'Anfrage nicht erlaubt'},403);
   let b={};if(request.method==='POST'){const raw=await request.text();if(raw.length>3000)return dbJson({error:'Anfrage zu groß'},413);b=JSON.parse(raw)}
+  if(path==='/api/club/preview'&&request.method==='POST'){
+   if(typeof b.token!=='string'||!/^[a-f0-9-]{72}$/.test(b.token))return dbJson({error:'Ungültiger Einladungslink.'},400);
+   const ctx=await cloudContext(request,false);
+   const invitation=await cloudQuery(ctx,'rpc/preview_club_invitation','POST',{invite_token:b.token});
+   if(!invitation)return dbJson({error:'Einladung abgelaufen, widerrufen, bereits verwendet oder für eine andere E-Mail-Adresse bestimmt.'},404);
+   return dbJson({invitation});
+  }
   if(path==='/api/club/accept'&&request.method==='POST'){
    if(typeof b.token!=='string'||!/^[a-f0-9-]{72}$/.test(b.token))return dbJson({error:'Ungültiger Einladungslink.'},400);
    const ctx=await cloudContext(request,false);

@@ -44,6 +44,8 @@ test('password updates require a verified session and logout clears both cookies
   assert.equal((await authApi(change)).status,200);assert.equal(writes,1);
   const logout=req('logout',{});logout.headers.set('cookie','__Host-trainer-access=access');
   const r=await authApi(logout);assert.equal(r.status,200);
-  const cookies=r.headers.getSetCookie();assert.equal(cookies.length,2);assert.ok(cookies.every(c=>c.includes('Max-Age=0')));
+  const cookies=r.headers.getSetCookie();assert.equal(cookies.length,3);assert.ok(cookies.every(c=>c.includes('Max-Age=0')));
  }finally{globalThis.fetch=old}
 });
+
+

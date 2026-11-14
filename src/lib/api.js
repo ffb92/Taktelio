@@ -23,13 +23,16 @@ export function startSession(){
     const invite=query.get('invite');
     if(invite&&/^[a-f0-9-]{72}$/.test(invite))storage.set('trainer-club-invite',invite,true);
     query.delete('invite');
-    const recovery=hash.get('type')==='recovery';
+    const recovery=hash.get('type')==='recovery'||query.get('flow')==='reset';
     // Strip tokens before any network operation; never persist them in browser storage.
-    if(hash.has('access_token')||invite)history.replaceState(null,'',location.pathname+(query.size?'?'+query:'')+(hash.has('access_token')?'':location.hash));
+    if(hash.has('error')){history.replaceState(null,'',location.pathname);return {user:null,recovery:false,error:'Dieser E-Mail-Link ist ungültig oder abgelaufen. Bitte einen neuen Link anfordern.'}}
+    if(recovery)query.set('flow','reset');
+    if(hash.has('access_token')||invite||recovery)history.replaceState(null,'',location.pathname+(query.size?'?'+query:'')+(hash.has('access_token')?'':location.hash));
     storage.remove('sc27-cloud-session',true);
     try{
-      if(hash.has('access_token'))await apiFetch('/api/auth/callback',{body:{access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token')}});
-      else try{await apiFetch('/api/auth/refresh',{body:{}})}catch(error){if(error.status!==401)throw error}
+      if(hash.has('access_token')){const callback=await apiFetch('/api/auth/callback',{body:{access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token'),type:hash.get('type')}});if(callback.recovery){history.replaceState(null,'','/?flow=reset');return {user:null,recovery:true}}}
+      if(recovery){await apiFetch('/api/auth/recovery-status');return {user:null,recovery:true}}
+      else if(!hash.has('access_token'))try{await apiFetch('/api/auth/refresh',{body:{}})}catch(error){if(error.status!==401)throw error}
       const {user}=await apiFetch('/api/auth/me');return {user,recovery};
     }catch(error){return {user:null,recovery:false,error:error.status===401?'':error.message}}
   })();

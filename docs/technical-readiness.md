@@ -23,7 +23,7 @@ Ausgangsstand: `d994898` auf `main`. Aktualisiert am 14. November 2026 für `f77
 ## Noch offen
 
 - Ein vollständiger Ablauf mit echten Testkonten: Registrierung und Mailbestätigung, Session-Erneuerung, Passwort-Reset, Einladungsannahme, Generierung, Speichern und erneutes Öffnen. Dafür sind eine konfigurierte separate Supabase-Testumgebung und geeignete Konten erforderlich.
-- Die Supabase-Live-Konfiguration wurde am 14. November 2026 per `supabase config diff` gelesen: Site URL `https://www.taktelio.app`, Redirect-Allowlist mit `www`, Apex und `taktelio.vercel.app`, SMTP über Resend. Mailvorlagen, Data-API-Einstellungen und ein vollständiger E-Mail-Ablauf bleiben ungeprüft; das `?invite=*`-Muster fehlt in der Allowlist.
+- Die Supabase-Live-Konfiguration wurde am 14. November 2026 per `supabase config diff` gelesen: Site URL `https://www.taktelio.app`, Redirect-Allowlist mit `www`, Apex und `taktelio.vercel.app`, SMTP über Resend. Mailvorlagen, Data-API-Einstellungen und ein vollständiger E-Mail-Ablauf bleiben ungeprüft; die `?invite=*`-Muster für `www` und Apex sind seit dem 14. November 2026 in der Allowlist eingetragen.
 - PGlite führt echte PostgreSQL-Policies aus, simuliert aber die Auth-Schnittstelle. Es ersetzt keinen vollständigen Supabase-Stack, kein Browser-Login und keinen Mehrverbindungs-/Lasttest.
 - Der Frischaufbau erzeugt Anwendungsschema und Grundstock, aber keine Supabase-Migrationshistorie und keine externen Projekteinstellungen. Die Produktionshistorie wurde am 14. November 2026 für die beiden manuell eingespielten Migrationen abgeglichen; der ältere Doppeleintrag `20261113131024` bleibt in der Remote-Historie.
 - Ein Linter oder Typecheck ist weiterhin nicht eingerichtet. Die automatische Basisprüfung umfasst Tests und Build.

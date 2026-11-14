@@ -40,3 +40,37 @@ test('invalid field groups remain rejected after one correction and do not consu
   assert.match((await response.json()).error,/Übungsfelder/);
  }finally{globalThis.fetch=old}
 });
+
+test('server fixes exact slot durations for every supported total and preserves adjustment block count',async()=>{
+ const {timedPlanSchema,unpackTimedPlan}=await import('../worker/api.mjs');
+ for(let minutes=30;minutes<=120;minutes++){
+  for(const previous of [null,plan]){
+   const timed=timedPlanSchema(minutes,previous);
+   const slots=timed.properties.blocks.properties;
+   const durations=Object.values(slots).map(s=>s.properties.minutes.enum[0]);
+   assert.equal(durations.reduce((a,b)=>a+b,0),minutes);
+   assert.ok(durations.every(n=>Number.isInteger(n)&&n>0));
+   assert.equal(durations.length,previous?2:4);
+   const wire={title:plan.title,summary:plan.summary,blocks:Object.fromEntries(Object.keys(slots).map((key,i)=>[key,{...block,minutes:durations[i]}]))};
+   assert.ok(validatePlan(unpackTimedPlan(wire,timed),{...c,minutes}));
+   wire.blocks.block_1.minutes++;
+   assert.ok(!validatePlan(unpackTimedPlan(wire,timed),{...c,minutes}));
+  }
+ }
+});
+
+test('API accepts schema-bound slots with an odd training duration',async()=>{
+ const old=globalThis.fetch;let calls=0;
+ try{
+  globalThis.fetch=async(url,init)=>{
+   if(url.includes('/auth/v1/user'))return Response.json({id:'user-a',email_confirmed_at:'2026-01-01'});
+   if(url.includes('/memberships'))return Response.json([{role:'owner'}]);
+   if(url.includes('/exercises'))return Response.json([]);
+   if(url.includes('/rpc/ai_gate'))return Response.json({code:JSON.parse(init.body).action==='reserve'?'reserved':'settled'});
+   calls++;const slots=JSON.parse(init.body).text.format.schema.properties.blocks.properties;
+   return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:1000},output:[{content:[{type:'output_text',text:JSON.stringify({...plan,blocks:Object.fromEntries(Object.entries(slots).map(([key,s])=>[key,{...block,minutes:s.properties.minutes.enum[0]}]))})}]}]});
+  };
+  const response=await api(req({criteria:{...c,minutes:47},change:'',mode:'new'}),{OPENAI_API_KEY:'mock',AI_MODEL:'gpt-4.1-mini',AI_LIMIT_SECRET:'mock'});
+  assert.equal(response.status,200);assert.equal(calls,1);assert.ok(validatePlan((await response.json()).plan,{...c,minutes:47}));
+ }finally{globalThis.fetch=old}
+});

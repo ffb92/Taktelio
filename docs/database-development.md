@@ -37,6 +37,8 @@ Das ist ein Schema-Bootstrap, kein Import produktiver Benutzer, Daten oder Migra
 
 > `supabase/config.toml` enthält lokale Standardwerte. `supabase config push` würde diese gegen das verlinkte Projekt schreiben und dabei unter anderem E-Mail-Bestätigung, OTP-Länge, MFA und Redirect-Allowlist der Produktion überschreiben. Nicht gegen das Produktionsprojekt ausführen; Live-Einstellungen ausschließlich im Dashboard oder gezielt über die Management-API ändern.
 
+Die neun vor der CLI-Einführung manuell angewendeten Migrationen wurden aus `supabase_migrations.schema_migrations` rekonstruiert und mit `-- taktelio:pre-cli` markiert. Der Test zur Fresh-Install-Zusammenstellung überspringt markierte Dateien, weil `db/*.sql` diese Änderungen abbildet; neue Migrationen dürfen die Markierung nicht tragen. Zwei markierte Dateien sind absichtliche No-Op-Duplikate älterer Versionen. `supabase db push --dry-run` meldet damit „Remote database is up to date".
+
 Das KI-Gate erhält absichtlich kein Secret. Ohne eigenen Serverzugang, passend eingerichteten Gate-Secret-Hash und freigegebenes Budget bleibt KI deaktiviert. Auth-Redirects, SMTP, Mailvorlagen und Data-API-Konfiguration sind Projekteinstellungen und werden durch diesen Bootstrap nicht eingerichtet. Ihre Anleitung steht in [Domain und Auth-Mails](domain-and-email-setup.md).
 
 ## Lokale Oberfläche mit Testprojekt

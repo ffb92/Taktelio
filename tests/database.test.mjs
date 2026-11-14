@@ -19,6 +19,9 @@ test('fresh-install assembly accounts for every existing migration',async()=>{
  const sql=await freshDatabaseSql();
  const migrations=await readdir(new URL('../supabase/migrations/',import.meta.url));
  for(const file of migrations.filter(f=>f.endsWith('.sql'))){
+  // Pre-CLI migrations are reconstructed for history alignment; db/*.sql represents them.
+  const migration=await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8');
+  if(migration.includes('-- taktelio:pre-cli'))continue;
   // Cleanup of absent prototype tables is intentionally unnecessary on a fresh install.
   if(file==='20261113130800_retire_legacy_club_tables.sql')continue;
   assert.ok(sql.includes('-- supabase/migrations/'+file),'Add migration to fresh-install assembly: '+file);

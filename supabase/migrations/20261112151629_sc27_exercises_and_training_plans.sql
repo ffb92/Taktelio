@@ -1,0 +1,6 @@
+-- taktelio:pre-cli migration
+-- Applied manually before this repository adopted the Supabase CLI. Reconstructed from
+-- supabase_migrations.schema_migrations. The fresh-install assembly uses db/*.sql instead.
+
+create table public.sc27_exercises (id text primary key, payload jsonb not null check(jsonb_typeof(payload)='object'), created_by text, created_at timestamptz not null default now()); create table public.sc27_plans (id uuid primary key default gen_random_uuid(), owner_id text not null, payload jsonb not null check(jsonb_typeof(payload)='object'), created_at timestamptz not null default now()); create index sc27_plans_owner_created on public.sc27_plans(owner_id,created_at desc); alter table public.sc27_exercises enable row level security; alter table public.sc27_plans enable row level security; revoke all on public.sc27_exercises, public.sc27_plans from anon,authenticated; grant all on public.sc27_exercises, public.sc27_plans to service_role; comment on table public.sc27_exercises is 'SC27 drafts. Only authenticated server bridge uses service_role; direct clients intentionally denied.'; comment on table public.sc27_plans is 'Private plan snapshots. Server bridge checks Sites user ownership on every operation.';
+

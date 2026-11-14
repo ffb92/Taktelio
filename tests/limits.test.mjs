@@ -51,7 +51,7 @@ test('successful and invalid results settle measured cost; settlement failure is
  };
  try{
   assert.equal((await api(req(),env)).status,200);assert.equal(details.outcome,'succeeded');assert.equal(details.cost_microusd,3600);assert.equal(details.result.plan.title,'Training');
-  invalid=true;assert.equal((await api(req(),env)).status,422);assert.equal(details.outcome,'failed');assert.equal(details.cost_microusd,3600);
+  invalid=true;assert.equal((await api(req(),env)).status,422);assert.equal(details.outcome,'failed');assert.equal(details.cost_microusd,7200);
   invalid=false;settlementFails=true;assert.equal((await api(req(),env)).status,503);
  }finally{globalThis.fetch=old}
 });

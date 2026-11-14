@@ -6,7 +6,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --import tsx --test tests/*.test.mjs"
+    "test": "node --import tsx --test tests/*.test.mjs",
+    "db:schema": "node scripts/database-schema.mjs",
+    "test:db": "node --test tests/database.test.mjs"
   },
   "engines": {
     "node": "22.x"
@@ -16,6 +18,7 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
     "@testing-library/react": "16.3.3",
     "jsdom": "31.0.1",
     "tsx": "4.23.15",

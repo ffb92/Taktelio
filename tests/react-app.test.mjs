@@ -56,3 +56,44 @@ test('React planner retries uncertain requests with the same ID and saves the re
   fireEvent.click(screen.getByRole('button',{name:'Einheit speichern'}));await screen.findByText('Einheit für deinen Verein gespeichert.');assert.equal(saved.action,'save');assert.equal(saved.payload.plan.title,plan.title);assert.equal(saved.payload.criteria.players,12);
  }finally{cleanup();globalThis.fetch=realFetch}
 });
+
+
+test('malformed saved and local plans remain removable without crashing or opening',async()=>{
+ const {default:SavedPlans}=await import('../src/components/SavedPlans.jsx');let opened=false;
+ try{
+  localStorage.setItem('taktelio-ai-plans',JSON.stringify([null,{plan:{title:'Lokaler Altbestand',blocks:[{}]},criteria:{}}]));
+  globalThis.fetch=async()=>Response.json({records:[{id:'broken',payload:null},{id:'bad-groups',payload:{plan:{title:'Defekter Plan',blocks:[{}]},criteria:{}}}],nextOffset:null});
+  render(React.createElement(SavedPlans,{workspaceId:clubA.id,onOpen:()=>{opened=true}}));
+  await screen.findByText('Unvollständige Einheit');
+  fireEvent.click(screen.getAllByRole('button',{name:'Öffnen'})[0]);
+  await screen.findByText(/Diese Einheit ist unvollständig/);
+  assert.equal(opened,false);assert.equal(JSON.parse(localStorage.getItem('taktelio-ai-plans')).length,2);
+  fireEvent.click(screen.getByText('Frühere lokale Entwürfe auf diesem Gerät'));
+  const localLabel=screen.getByText('Lokaler Altbestand');
+  assert.equal(localLabel.parentElement.querySelector('button').disabled,true);
+ }finally{cleanup();globalThis.fetch=realFetch;localStorage.clear()}
+});
+
+
+test('a complete legacy saved plan opens in the planner with its criteria intact',async()=>{
+ const {default:Training}=await import('../src/components/Training.jsx');
+ const {trainingRecord}=await import('./fixtures/training-plan.mjs');
+ const record=trainingRecord();record.plan.title='Bestehende Einheit';delete record.mode;delete record.plan.blocks[0].sourceExerciseId;
+ try{
+  globalThis.fetch=async path=>{
+   if(path==='/api/status')return Response.json({ready:false,message:'KI deaktiviert'});
+   if(path==='/api/exercises')return Response.json({exercises:[]});
+   if(path==='/api/storage')return Response.json({records:[{id:'legacy',payload:record}],nextOffset:null});
+   throw Error(path);
+  };
+  render(React.createElement(Training,{workspaceId:clubA.id,onBusy:()=>{}}));
+  fireEvent.click(screen.getByRole('button',{name:'Einheiten',exact:true}));
+  await screen.findByRole('heading',{name:'Bestehende Einheit'});
+  fireEvent.click(screen.getByRole('button',{name:'Öffnen',exact:true}));
+  await screen.findByRole('button',{name:'Einheit speichern'});
+  assert.equal(screen.getByLabelText('Minuten').value,'60');
+  assert.equal(screen.getByLabelText('Teilnehmende').value,'12');
+  assert.equal(screen.getByLabelText('Planungsmodus').value,'hybrid');
+  assert.equal(screen.getAllByRole('heading',{name:'Passspiel',exact:true}).length,2);
+ }finally{cleanup();globalThis.fetch=realFetch;localStorage.clear()}
+});

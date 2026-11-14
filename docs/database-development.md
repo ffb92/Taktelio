@@ -47,3 +47,16 @@ Das KI-Gate erhält absichtlich kein Secret. Ohne eigenen Serverzugang, passend 
 4. `npm run dev` starten und `http://localhost:5173` öffnen.
 
 Server und Client laufen dabei unter derselben lokalen Adresse. Die Umgebungsvariablen werden beim Serverstart gelesen; nach Änderungen neu starten. Keine Secret- oder Service-Role-Keys als Publishable Key verwenden. Die lokale API verändert keine Authentifizierungs- oder Autorisierungsregeln.
+
+## KI-Limits
+
+Die Limits liegen in der Datenbank, nicht im Anwendungscode. Änderungen erfolgen ausschließlich per Migration.
+
+| Tabelle/Feld | Zweck | Pilotwert |
+|---|---|---|
+| `private.ai_budget_periods.limit_microusd` (`pilot`) | Gesamtbudget aller KI-Anfragen | 5.000.000 µUSD = 5,00 USD, **kein Monatsreset** |
+| `public.workspace_entitlements.monthly_generations` | Kontingent pro Verein und Monat | 30 |
+| `private.ai_requests.reserved_microusd` | Reservierung pro Anfrage | 100.000 µUSD = 0,10 USD |
+| `private.ai_gate_config.secret_hash` | SHA-256 des `AI_LIMIT_SECRET` | muss zum Vercel-Secret passen |
+
+Zusätzlich begrenzt die Funktion `private.ai_gate` auf drei Starts pro Nutzer und Minute sowie eine gleichzeitig laufende Anfrage pro Nutzer. Das Budget ist ein Lebenszeitbetrag: Ist es ausgeschöpft, bleibt KI deaktiviert, bis die Migration den Wert erhöht. `AI_LIMIT_SECRET` in Vercel und der Hash in `private.ai_gate_config` müssen zusammenpassen; ein neuer Secret-Wert ohne Hash-Update deaktiviert KI.

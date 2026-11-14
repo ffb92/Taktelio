@@ -40,7 +40,7 @@ Vereinseinladungen in Taktelio werden derzeit als Link zum Weitergeben erzeugt. 
 
 ## Einladungsablauf und Redirect-Allowlist
 
-Vor der Anmeldung erscheint ein Hinweis auf die Vereinseinladung. Nach Anmeldung mit der bestätigten Empfängeradresse werden Vereinsname, einladende E-Mail-Adresse und Empfängeradresse aus der Datenbank angezeigt. Erst „Einladung annehmen“ erstellt die Mitgliedschaft. Details werden nicht anonym freigegeben. Abgelaufene, widerrufene, bereits verwendete oder für eine andere Adresse bestimmte Links sind nicht annehmbar.
+Ein gültiger Einladungslink zeigt bereits vor der Anmeldung den Vereinsnamen und Anzeigenamen der einladenden Person. Die öffentliche Vorschau liefert ausschließlich diese beiden Felder und benötigt den vollständigen zufälligen Einladungstoken. E-Mail-Adressen und sonstige Profildaten werden nicht öffentlich ausgegeben. Nach Anmeldung mit der bestätigten Empfängeradresse wird zusätzlich die Empfängeradresse angezeigt. Erst „Einladung annehmen“ erstellt die Mitgliedschaft. Abgelaufene, widerrufene, bereits verwendete oder für eine andere Adresse bestimmte Links sind nicht annehmbar.
 
 Für die Registrierung wird die Einladung im Bestätigungs-Redirect `https://taktelio.app/?invite=<token>` weitergegeben. In Supabase muss zusätzlich zum Stammziel `https://taktelio.app` das eng begrenzte Muster `https://taktelio.app/?invite=*` zugelassen sein. Die Live-Allowlist konnte in dieser Sitzung mangels Dashboard-Anmeldung nicht geprüft werden. Ohne das Muster kann die Bestätigung in einem anderen Browser die Einladung verlieren; im ursprünglichen Tab bleibt sie gespeichert.
 
@@ -57,3 +57,9 @@ Für die Registrierung wird die Einladung im Bestätigungs-Redirect `https://tak
 - https://resend.com/docs/send-with-supabase-smtp
 - https://supabase.com/docs/guides/auth/auth-email-templates
 - https://supabase.com/docs/guides/auth/redirect-urls
+
+## Persönliches Profil
+
+Vorname und Nachname werden beim Speichern des Profils benötigt. Anzeigename, betreute Mannschaft(en) und Trainerqualifikation sind optional. Gespeichert wird nur die validierte Feldliste in Supabase Auth unter `user_metadata.taktelio_profile`. Diese Angaben werden niemals für Berechtigungen oder Vereinsrollen ausgewertet. Die eigene E-Mail und Vereinsrolle werden weiterhin aus den bestehenden Auth-/Mitgliedschaftsdaten gelesen.
+
+Einladungen verwenden den Anzeigenamen, ersatzweise Vor- und Nachname. Neue Einladungen setzen einen gespeicherten Namen voraus. Bestehende Einladungen ohne Namen zeigen vorübergehend „Ein Vereinsadministrator“; nach dem Speichern des Namens zeigen dieselben gültigen Links automatisch den Namen.

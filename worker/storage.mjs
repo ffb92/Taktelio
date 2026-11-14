@@ -1,3 +1,4 @@
+import {profileName} from './profile.mjs';
 import {verifiedUser,authToken} from './auth.mjs';
 const DB_URL='https://iyhyibjmfzjuypgybnno.supabase.co';
 const DB_KEY='sb_publishable_aGDtN2MZowyJdpQsS8qjrA_TN7SI_KN';
@@ -40,6 +41,7 @@ export async function clubApi(request){
   }
   if(path==='/api/club/invite'&&request.method==='POST'){
    if(typeof b.email!=='string'||b.email.length>254||!b.email.includes('@'))return dbJson({error:'Bitte gültige E-Mail eingeben.'},400);
+   if(!profileName(ctx.user))return dbJson({error:'Bitte zuerst deinen Namen im Profil speichern, damit eingeladene Personen wissen, von wem die Einladung stammt.'},400);
    const data=await cloudQuery(ctx,'rpc/create_club_invitation','POST',{wid:ctx.workspaceId,invite_email:b.email});
    return dbJson({id:data.id,email:data.email,url:new URL(request.url).origin+'/?invite='+encodeURIComponent(data.token)});
   }
@@ -49,4 +51,17 @@ export async function clubApi(request){
   }
   return dbJson({error:'Nicht gefunden'},404);
  }catch{return dbJson({error:'Aktion nicht möglich. Bitte Berechtigung und Angaben prüfen. Eventuell ist die Person bereits Mitglied.'},403)}
+}
+
+export async function invitationPreviewApi(request){
+ if(request.method!=='POST')return dbJson({error:'POST erforderlich'},405);
+ if(request.headers.get('origin')!==new URL(request.url).origin)return dbJson({error:'Anfrage nicht erlaubt'},403);
+ try{
+  const raw=await request.text();if(raw.length>300)return dbJson({error:'Anfrage zu groß'},413);
+  const body=JSON.parse(raw);if(typeof body?.token!=='string'||!/^[a-f0-9-]{72}$/.test(body.token))return dbJson({error:'Ungültiger Einladungslink.'},400);
+  // Token possession permits club + inviter display name only. No email, profile, or membership data.
+  const invitation=await cloudQuery({headers:{apikey:DB_KEY,'Content-Type':'application/json'}},'rpc/public_invitation_preview','POST',{invite_token:body.token});
+  if(!invitation)return dbJson({error:'Diese Einladung ist abgelaufen, widerrufen oder bereits angenommen.'},404);
+  return dbJson({invitation});
+ }catch{return dbJson({error:'Einladung konnte nicht geprüft werden. Bitte erneut versuchen.'},503)}
 }

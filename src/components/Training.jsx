@@ -1,3 +1,4 @@
+import {normalizeRecord} from '../../shared/training-plan.mjs';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {apiFetch} from '../lib/api.js';
 import Plan from './Plan.jsx';
@@ -11,7 +12,7 @@ export default function Training({workspaceId,onBusy}){
  const reloadCatalog=useCallback(async()=>{try{const d=await apiFetch('/api/exercises',{workspaceId});if(alive.current){setCatalog(d.exercises);setCatalogMessage('')}}catch(e){if(alive.current)setCatalogMessage(e.message)}},[workspaceId]);
  useEffect(()=>{alive.current=true;refreshStatus();reloadCatalog();return()=>{alive.current=false}},[refreshStatus,reloadCatalog]);
  const field=(name,value)=>setCriteria(old=>({...old,[name]:value}));
- const load=r=>{setPrevious(record);setRecord(r);setCriteria(r.criteria);setMode(r.mode||'hybrid');setView('ai');setMessage('')};
+ const load=input=>{const r=normalizeRecord(input);if(!r){setMessage('Diese Einheit ist unvollständig und kann nicht geöffnet werden.');return}setPrevious(record);setRecord(r);setCriteria(r.criteria);setMode(r.mode||'hybrid');setView('ai');setMessage('')};
  async function generate(adjust=false){
   if(flight.current||!form.current.reportValidity())return;
   if(adjust&&!change.trim())return setMessage('Beschreibe zuerst die gewünschte Änderung.');

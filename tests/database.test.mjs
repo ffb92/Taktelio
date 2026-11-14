@@ -7,8 +7,9 @@ import {freshDatabaseSql} from '../scripts/database-schema.mjs';
 test('fresh database contains the catalog and refuses a second installation',async()=>{
  const db=await testDatabase();
  try{
+  const catalog=JSON.parse(await readFile(new URL('../data/exercises.json',import.meta.url),'utf8'));
   const {rows}=await db.query('select count(*)::int as count from public.exercises');
-  assert.equal(rows[0].count,30);
+  assert.equal(rows[0].count,catalog.length);
   const {rows:tables}=await db.query("select tablename,rowsecurity from pg_tables where schemaname in ('public','private')");
   assert.ok(tables.length>=9);assert.ok(tables.every(t=>t.rowsecurity));
   await assert.rejects(db.exec(await freshDatabaseSql()),/empty public schema/);

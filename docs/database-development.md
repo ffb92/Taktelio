@@ -11,7 +11,7 @@ Die Tests erstellen für jeden SQL-Test eine neue PGlite-Datenbank im Arbeitsspe
 
 Geprüft werden:
 
-- Aufbau aus leerem Anwendungsschema einschließlich 30 Katalogübungen und RLS auf allen Anwendungstabellen.
+- Aufbau aus leerem Anwendungsschema einschließlich 40 Katalogübungen und RLS auf allen Anwendungstabellen.
 - Einmaliger Bootstrap; bestehende Tabellen verhindern eine erneute Installation.
 - Vereinserstellung, Umbenennung, Mitgliedseinladung, Empfängerbindung, Wiederholung und Widerruf.
 - KI-Gate-Secret, Kontingente, Budget, Wiederholungen, laufende Anfragen, Abrechnung und Monatswechsel.
@@ -32,6 +32,17 @@ node scripts/database-schema.mjs > fresh-install.sql
 Alternativ gibt `npm run --silent db:schema` denselben SQL-Text aus. Die erzeugte Datei kann im SQL-Editor der **leeren Testdatenbank** ausgeführt werden. Sie enthält eine Transaktion, prüft das Vorhandensein von Supabase Auth und bricht ab, wenn `public` bereits Tabellen enthält. Das Skript führt selbst keine Datenbankanfrage aus.
 
 Der Generator setzt die vorhandenen Dateien aus `db/` und die anwendbaren Migrationen in ihrer notwendigen Reihenfolge zusammen. Nur das Kopieren aus dem alten Prototyp-Katalog wird durch `data/exercises.json` ersetzt. Die Migration zum Löschen ehemaliger Prototyp-Tabellen entfällt, da diese in einer frischen Datenbank nicht angelegt werden. Ein Test verlangt, dass jede weitere Migration ausdrücklich im Generator berücksichtigt wird. Die historische Migrationsfolge wird nicht umgeschrieben.
+
+## Übungskatalog in eine bestehende Datenbank übernehmen
+
+Der Frischaufbau ist der einzige Weg, der den Katalog mitsät. Für eine bereits laufende Datenbank dient `scripts/catalog-sync.mjs`. Das Skript liest `data/exercises.json`, vergleicht mit den gemeinsamen Zeilen (`workspace_id is null`) und schreibt nur Unterschiede. Ohne `--apply` bleibt es bei einem Probelauf. `--prune` entfernt gemeinsame Zeilen, die nicht mehr im JSON stehen; Vereinsübungen sind von allen Aktionen ausgeschlossen.
+
+```sh
+node scripts/catalog-sync.mjs
+node scripts/catalog-sync.mjs --apply
+```
+
+Der Service-Role-Key wird ausschließlich über die Umgebung gesetzt und nicht im Repository abgelegt. Die Skripte `catalog:validate` und `catalog:coverage` brauchen keinen Datenbankzugang.
 
 Das ist ein Schema-Bootstrap, kein Import produktiver Benutzer, Daten oder Migrationshistorie. Er setzt keine Supabase-Migrationshistorie. Vor späterem Einsatz von CLI-Migrationsbefehlen auf dieser Testdatenbank muss deren Historie separat mit dem Bootstrap abgeglichen werden. Keine Änderungen an der Historie einer bestehenden Produktionsdatenbank aus dieser Anleitung ableiten.
 

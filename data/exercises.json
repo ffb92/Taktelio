@@ -868,5 +868,295 @@
     "origin": "SC27 KI-Grundstock",
     "createdAt": "2026-11-12",
     "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
+  },
+  {
+    "id": "sc27-031",
+    "version": 1,
+    "title": "Viereck-Aktivierung mit Ball",
+    "topic": "Aktivierung",
+    "ageMin": 15,
+    "ageMax": 18,
+    "playersMin": 4,
+    "playersMax": 8,
+    "duration": 10,
+    "fieldSize": "20 × 20 m",
+    "materials": "1 Ball pro Person, 8 Hütchen",
+    "organization": "Vier Hütchen bilden ein großes Viereck; alle bewegen sich mit Ball im Feld.",
+    "steps": [
+      "Locker im Feld dribbeln und die Außenlinien des Vierecks ablaufen.",
+      "Auf Zuruf eine Ecke ansteuern, dort kurz bremsen und mit dem anderen Fuß weiterdribbeln.",
+      "Nach zwei Minuten den Ball weglegen und Arme sowie Hüfte mobilisieren."
+    ],
+    "coaching": [
+      "Ruhige, kurze Kontakte; den Blick heben, bevor die Ecke erreicht ist."
+    ],
+    "easier": "Ohne Ball gehen und die Ecken nur berühren.",
+    "harder": "Zwei Ecken in einer vorgegebenen Reihenfolge ansteuern.",
+    "phase": "Einstieg",
+    "status": "unreviewed",
+    "origin": "SC27 KI-Grundstock",
+    "createdAt": "2026-11-14",
+    "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
+  },
+  {
+    "id": "sc27-032",
+    "version": 1,
+    "title": "Passfolge im Dreieckstakt",
+    "topic": "Passspiel",
+    "ageMin": 15,
+    "ageMax": 18,
+    "playersMin": 4,
+    "playersMax": 8,
+    "duration": 10,
+    "fieldSize": "Dreieck mit 10 m Seitenlänge",
+    "materials": "1 Ball je Vierergruppe, 6 Hütchen",
+    "organization": "Je Gruppe ein Dreieck mit drei Stationen; die vierte Person steht als Anspielstation in der Mitte.",
+    "steps": [
+      "Den Ball im Dreieck passen, ohne dass die Mittelperson ihn berührt.",
+      "Die Mittelperson gibt nach jedem Pass ein Zeichen, wohin der nächste Pass geht.",
+      "Nach 60 Sekunden rotieren, damit alle Positionen einmal besetzt werden."
+    ],
+    "coaching": [
+      "Den Ball nah am Fuß führen und den Pass mit dem Standbein zeigen."
+    ],
+    "easier": "Die Mittelperson spielt mit und gibt keine Zeichen.",
+    "harder": "Direktpass mit höchstens zwei Kontakten.",
+    "phase": "Einstieg",
+    "status": "unreviewed",
+    "origin": "SC27 KI-Grundstock",
+    "createdAt": "2026-11-14",
+    "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
+  },
+  {
+    "id": "sc27-033",
+    "version": 1,
+    "title": "Aufbau über den Sechser",
+    "topic": "Spielaufbau",
+    "ageMin": 14,
+    "ageMax": 18,
+    "playersMin": 4,
+    "playersMax": 8,
+    "duration": 15,
+    "fieldSize": "30 × 24 m mit zwei Aufbauzonen",
+    "materials": "1 Ball, 10 Hütchen, 2 Leibchenfarben",
+    "organization": "Je Feld zwei Mannschaften mit zwei bis vier Personen; in jeder Aufbauzone steht eine Anspielperson.",
+    "steps": [
+      "Die Aufbauzone spielt ins Mittelfeld, das den Ball offen annimmt.",
+      "Nach dem Zuspiel rückt die Aufbauzone nach und wird zur Anspielstation für den Rückpass.",
+      "Angreifer starten nach dem dritten Pass in den freien Raum; nach zwei Minuten Rollen tauschen."
+    ],
+    "coaching": [
+      "Vor der Annahme den Raum hinter dem Gegner sehen; der Rückpass bleibt eine sichere Option."
+    ],
+    "easier": "Ohne Gegnerdruck aufbauen.",
+    "harder": "Gegen zwei aktive Gegenspieler aufbauen.",
+    "phase": "Hauptteil",
+    "status": "unreviewed",
+    "origin": "SC27 KI-Grundstock",
+    "createdAt": "2026-11-14",
+    "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
+  },
+  {
+    "id": "sc27-034",
+    "version": 1,
+    "title": "Anlaufen im Pressing-Dreieck",
+    "topic": "Pressing",
+    "ageMin": 14,
+    "ageMax": 18,
+    "playersMin": 4,
+    "playersMax": 8,
+    "duration": 12,
+    "fieldSize": "24 × 20 m mit zwei Pressingzonen",
+    "materials": "1 Ball, 8 Hütchen, Leibchen",
+    "organization": "Zwei Teams; das verteidigende Team stellt drei Personen im Dreieck und lenkt den Aufbau auf eine Seite.",
+    "steps": [
+      "Der Aufbau beginnt an der eigenen Endlinie.",
+      "Das verteidigende Team läuft im Dreieck an: vorderste Person stellt, die beiden anderen sichern die Passwege.",
+      "Nach Ballgewinn innerhalb von fünf Sekunden auf ein Hüttentor abschließen; nach 90 Sekunden Rollen tauschen."
+    ],
+    "coaching": [
+      "Gemeinsam anlaufen statt einzeln; eine Seite zustellen, nicht hinterherlaufen."
+    ],
+    "easier": "Das Pressing beginnt erst nach dem zweiten Pass.",
+    "harder": "Das Pressing beginnt direkt nach dem Anstoß.",
+    "phase": "Hauptteil",
+    "status": "unreviewed",
+    "origin": "SC27 KI-Grundstock",
+    "createdAt": "2026-11-14",
+    "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
+  },
+  {
+    "id": "sc27-035",
+    "version": 1,
+    "title": "Abschluss nach Zuspiel in den Lauf",
+    "topic": "Torschuss",
+    "ageMin": 14,
+    "ageMax": 18,
+    "playersMin": 4,
+    "playersMax": 8,
+    "duration": 12,
+    "fieldSize": "Halbfeld mit einem Tor",
+    "materials": "1 Tor mit Torhüter, 3 Bälle, 6 Hütchen, 1 Leibchen",
+    "organization": "Anspielperson am Flügel; zwei Abschlussspieler starten aus der Mitte, die übrigen warten am Rand.",
+    "steps": [
+      "Die Anspielperson spielt in den Lauf des startenden Spielers.",
+      "Abschluss mit höchstens zwei Kontakten aus der Bewegung.",
+      "Nach jedem Durchgang die Seite wechseln; Wartende holen die Bälle zurück."
+    ],
+    "coaching": [
+      "Erst Ballkontrolle in der Bewegung, dann Blick zum Tor; den Torhüter nicht umspielen."
+    ],
+    "easier": "Zuspiel ohne Gegnerdruck und mehr Zeit.",
+    "harder": "Ein Verteidiger startet mit und stört den Abschluss.",
+    "phase": "Hauptteil",
+    "status": "unreviewed",
+    "origin": "SC27 KI-Grundstock",
+    "createdAt": "2026-11-14",
+    "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
+  },
+  {
+    "id": "sc27-036",
+    "version": 1,
+    "title": "Verlagerung nach Ballgewinn",
+    "topic": "Umschalten",
+    "ageMin": 14,
+    "ageMax": 18,
+    "playersMin": 4,
+    "playersMax": 8,
+    "duration": 14,
+    "fieldSize": "30 × 22 m mit zwei Hüttentoren je Seite",
+    "materials": "1 Ball, 8 Hütchen, Leibchen",
+    "organization": "Zwei Teams mit zwei bis vier Personen; an jeder Stirnseite stehen zwei Tore.",
+    "steps": [
+      "Freies Spiel auf die Tore der Gegenseite; die Kontaktzahl bleibt frei.",
+      "Nach Ballgewinn vor dem Angriff auf die freie Seite verlagern.",
+      "Nach Tor oder Aus wechselt der Ballbesitz; alle zwei Minuten kurze Pause."
+    ],
+    "coaching": [
+      "Nach Ballgewinn zuerst aufblicken; der erste Pass öffnet die freie Seite."
+    ],
+    "easier": "Feld verbreitern und ein drittes Tor je Seite ergänzen.",
+    "harder": "Ein Treffer zählt doppelt, wenn vor dem Abschluss beide Seiten bespielt wurden.",
+    "phase": "Hauptteil",
+    "status": "unreviewed",
+    "origin": "SC27 KI-Grundstock",
+    "createdAt": "2026-11-14",
+    "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
+  },
+  {
+    "id": "sc27-037",
+    "version": 1,
+    "title": "Spiel auf zwei Tore mit Torhütern",
+    "topic": "Spielform",
+    "ageMin": 14,
+    "ageMax": 18,
+    "playersMin": 4,
+    "playersMax": 8,
+    "duration": 15,
+    "fieldSize": "Halbfeld mit zwei Toren",
+    "materials": "2 Tore mit Torhütern, 1 Ball, Leibchen",
+    "organization": "Zwei Mannschaften mit zwei bis vier Personen; die Torhüter wechseln nach fünf Minuten.",
+    "steps": [
+      "Freies Spiel; Abseits und Torhüterregeln altersgerecht anwenden.",
+      "Nach einem Tor beginnt das andere Team vom eigenen Tor.",
+      "Alle drei Minuten kurze Pause; die Torhüter rotieren."
+    ],
+    "coaching": [
+      "Im Angriff breit stehen, nach Ballverlust schnell kompakt werden."
+    ],
+    "easier": "Die Torhüter spielen die Bälle aktiv mit.",
+    "harder": "Nach einem Tor muss der nächste Angriff innerhalb von 15 Sekunden abgeschlossen sein.",
+    "phase": "Spielform",
+    "status": "unreviewed",
+    "origin": "SC27 KI-Grundstock",
+    "createdAt": "2026-11-14",
+    "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
+  },
+  {
+    "id": "sc27-038",
+    "version": 1,
+    "title": "Umschaltspiel auf vier Tore",
+    "topic": "Spielform",
+    "ageMin": 14,
+    "ageMax": 18,
+    "playersMin": 4,
+    "playersMax": 8,
+    "duration": 15,
+    "fieldSize": "28 × 22 m",
+    "materials": "1 Ball, 8 Hütchen, Leibchen",
+    "organization": "Zwei Teams; jede Mannschaft greift zwei Tore an und verteidigt zwei.",
+    "steps": [
+      "Spiel auf vier Hüttentore; jeder Treffer zählt einfach.",
+      "Nach Ballgewinn sofort das am weitesten entfernte freie Tor suchen.",
+      "Nach einem Tor bleibt der Ball beim anderen Team; alle drei Minuten Pause."
+    ],
+    "coaching": [
+      "Nach Ballverlust den nächsten Passweg schließen, nicht nur zum Ball rennen."
+    ],
+    "easier": "Vier breite Tore und freie Kontaktzahl.",
+    "harder": "Ein Tor zählt nur nach einem Seitenwechsel.",
+    "phase": "Spielform",
+    "status": "unreviewed",
+    "origin": "SC27 KI-Grundstock",
+    "createdAt": "2026-11-14",
+    "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
+  },
+  {
+    "id": "sc27-039",
+    "version": 1,
+    "title": "Auslaufen mit Ballkontrolle",
+    "topic": "Abschluss",
+    "ageMin": 15,
+    "ageMax": 18,
+    "playersMin": 4,
+    "playersMax": 8,
+    "duration": 6,
+    "fieldSize": "30 × 20 m",
+    "materials": "1 Ball je Person",
+    "organization": "Alle gehen mit Ball in einer großen Runde um das Feld.",
+    "steps": [
+      "Langsam gehen und den Ball abwechselnd mit beiden Füßen führen.",
+      "Zum Schluss den Ball im Stand mehrfach mit der Sohle rollen.",
+      "Kurz im Kreis austauschen: Was war heute neu, was bleibt?"
+    ],
+    "coaching": [
+      "Das Tempo deutlich senken und ruhig atmen."
+    ],
+    "easier": "Ohne Ball gehen und nur locker mobilisieren.",
+    "harder": "Den Ball nur mit dem schwächeren Fuß führen.",
+    "phase": "Abschluss",
+    "status": "unreviewed",
+    "origin": "SC27 KI-Grundstock",
+    "createdAt": "2026-11-14",
+    "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
+  },
+  {
+    "id": "sc27-040",
+    "version": 1,
+    "title": "Eckball: kurzer und weiter Weg",
+    "topic": "Standards",
+    "ageMin": 14,
+    "ageMax": 18,
+    "playersMin": 4,
+    "playersMax": 8,
+    "duration": 12,
+    "fieldSize": "Strafraum mit einem Tor",
+    "materials": "1 Tor mit Torhüter, 3 Bälle, 6 Hütchen",
+    "organization": "Eckfahne markieren; die Gruppe teilt sich in kurze und lange Laufwege auf.",
+    "steps": [
+      "Kurzer Eckball: Anspieler kommt entgegen und spielt zurück in den Rücken der Abwehr.",
+      "Weiter Eckball: Laufweg in den Strafraum mit einer klaren Zone für jede Person.",
+      "Nach fünf Durchgängen die Seite wechseln und die Abläufe gemeinsam besprechen."
+    ],
+    "coaching": [
+      "Feste Laufwege und klare Absprachen; im Zweikampf nicht mit dem Kopf voraus gehen."
+    ],
+    "easier": "Ohne Gegnerdruck und nur ein Laufweg.",
+    "harder": "Zwei Verteidiger stören die Abläufe kontrolliert.",
+    "phase": "Hauptteil",
+    "status": "unreviewed",
+    "origin": "SC27 KI-Grundstock",
+    "createdAt": "2026-11-14",
+    "notes": "Eigenständiger KI-Entwurf; fachlich ungeprüft. Angaben gelten pro Feld/Gruppe. Weitere Gruppen benötigen zusätzliches Material und Platz. Belastung und Feldgröße vor Ort anpassen."
   }
 ]

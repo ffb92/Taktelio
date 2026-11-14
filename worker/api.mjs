@@ -1,7 +1,7 @@
 import {limitGate,usageCost,requestFingerprint,aiStatus,LIMIT_MESSAGES} from './limits.mjs';
 import {cloudCatalog,storageApi,workspaceApi,cloudContext,clubApi,invitationPreviewApi} from './storage.mjs';
 import {authApi,verifiedUser} from './auth.mjs';
-import {catalog,selectExercises,groupSizes} from './catalog.mjs';
+import {catalog,selectExercises,groupSizes,catalogVersion} from './catalog.mjs';
 import {schema,string,object,matches,validatePlan,validCriteria} from '../shared/training-plan.mjs';
 export {schema,matches,validatePlan} from '../shared/training-plan.mjs';
 export function planAllocations(players,candidates,mode){
@@ -94,7 +94,7 @@ try{
    if(attempt===0&&cost&&bytes<=100000&&cost.cost_microusd+Math.ceil(bytes*0.4+11000*1.6)<=100000&&deadline-Date.now()>15000){activePayload=repaired;continue}
    return finish({code:'invalid_plan',error:validationMessage(issues)+' Bitte erneut versuchen. Dein KI-Kontingent wurde nicht verbraucht.'},422);
   }
-  return finish({plan,source:'ai',catalogVersion:1,mode,sourceExercises:candidates.filter(e=>plan.blocks.some(b=>b.sourceExerciseId===e.id)).map(e=>({id:e.id,title:e.title,version:e.version,status:e.status})),model:data.model,createdAt:new Date().toISOString()});
+  return finish({plan,source:'ai',catalogVersion:catalogVersion(),mode,sourceExercises:candidates.filter(e=>plan.blocks.some(b=>b.sourceExerciseId===e.id)).map(e=>({id:e.id,title:e.title,version:e.version,status:e.status})),model:data.model,createdAt:new Date().toISOString()});
  }
 }catch{cost=null;return finish({error:'Der KI-Dienst antwortet gerade nicht. Dein bisheriger Plan bleibt erhalten.'},502)}
 }

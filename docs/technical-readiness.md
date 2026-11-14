@@ -7,7 +7,7 @@ Ausgangsstand: `d994898` auf `main`. Aktualisiert am 14. November 2026 für `f77
 - Ein gemeinsamer Datenvertrag prüft Trainingsvorgaben, alle Planblöcke, Gruppen, Zeiten und Diagramme. Die Speicher-API weist unvollständige Pläne ab. Die KI verwendet dasselbe Schema.
 - Vollständige ältere Entwürfe werden ohne Datenverlust übernommen. Beschädigte gespeicherte Einheiten können die Planansicht nicht mehr durch Öffnen zum Absturz bringen; lokale Altbestände bleiben erhalten und sind bei ungültigem Aufbau nicht öffnbar.
 - GitHub-Actions-Konfiguration für Installation, gesamte Testsuite und Produktionsbuild unter Node 22 ergänzt. Sie läuft bei Push und Pull Request; der Lauf zu `f7757af` war erfolgreich.
-- Frischaufbau des Anwendungsschemas mit 30 Katalogübungen aus den ursprünglichen SQL-Dateien und Migrationen; Abbruch bei bestehenden öffentlichen Tabellen. Anleitung: [Datenbankentwicklung](database-development.md).
+- Frischaufbau des Anwendungsschemas mit 40 Katalogübungen aus den ursprünglichen SQL-Dateien und Migrationen; Abbruch bei bestehenden öffentlichen Tabellen. Anleitung: [Datenbankentwicklung](database-development.md).
 - Die SQL-Tests laufen automatisch in einer isolierten PostgreSQL-Datenbank mit PGlite, einschließlich zusätzlicher Prüfungen für Vereinsgrenzen, persönliche Pläne, Rollen und anonymen Zugriff.
 - `npm run dev` bietet Frontend und dieselben API-Handler wie das Deployment unter einer lokalen Adresse an. Ein HTTP-Integrationstest prüft Origin-Schutz, Sitzungscookies, Fehlerantworten und Größenlimit.
 - Supabase-Projektkonfiguration zentralisiert und über ein gemeinsam erforderliches URL-/Key-Paar umgebungsabhängig gemacht. Ohne Konfiguration bleibt das bestehende Projekt erhalten.

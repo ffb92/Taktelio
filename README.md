@@ -44,3 +44,11 @@ Historische Datenbankdateien bleiben unverändert. Für eine leere Supabase-Test
 `npm test` prüft unter anderem Anmeldung, Vereinseinrichtung, Vereinswechsel, Abmeldung, idempotente KI-Anfragen und Speichern. Es werden keine kostenpflichtigen Modellaufrufe ausgeführt. Ein vollständig angemeldeter Produktionsablauf ist zusätzlich manuell zu prüfen.
 
 Die SQL-Tests laufen ebenfalls in `npm test` und separat mit `npm run test:db`. Sie erzeugen eine isolierte PostgreSQL-Datenbank im Arbeitsspeicher mit PGlite. Nur die für Policies benötigte Auth-Schnittstelle wird simuliert; Tabellen, Funktionen, Grants und RLS werden tatsächlich durch PostgreSQL ausgeführt. Keine Netzwerkverbindung und keine Produktionszugänge sind dafür nötig. GitHub Actions führt bei Push und Pull Request Installation, Tests und Build unter Node 22 aus.
+
+## Anbindungen
+
+Vercel und Supabase sind als gepinnte devDependencies eingebunden (`npx vercel`, `npx supabase`). Nach einem frischen Checkout einmalig `npx vercel link` und `npx supabase link --project-ref iyhyibjmfzjuypgybnno` ausführen; die Login-Tokens liegen außerhalb des Repositories. `supabase/config.toml` enthält lokale Standardwerte und darf nicht per `supabase config push` gegen die Produktion geschrieben werden.
+
+## Lizenz
+
+Proprietär — alle Rechte vorbehalten. Details siehe [LICENSE](LICENSE).

@@ -1,13 +1,13 @@
 # Taktelio: Domain und Auth-Mails einrichten
 
-Domain `https://taktelio.app` und Versand über Resend sind laut Einrichtung und Nutzertest aktiv. Die Zustellung wurde vom Nutzer bestätigt; ein erneuter vollständiger E-Mail-Test nach den Auth-Änderungen steht noch aus.
+Kanonische Adresse ist `https://www.taktelio.app`; `https://taktelio.app` leitet per 308 dorthin weiter. Der Versand über Resend ist eingerichtet. Am 14. November 2026 wurde die Live-Konfiguration per `supabase config diff` gelesen: Site URL `https://www.taktelio.app`, Redirect-Allowlist enthält `www`, Apex und `taktelio.vercel.app`, SMTP `smtp.resend.com:465` mit `noreply@taktelio.app`. Ein vollständiger E-Mail-Test nach den Auth-Änderungen steht noch aus.
 
 ## Zielkonfiguration
 
 | Zweck | Geplanter Wert |
 |---|---|
-| App | https://taktelio.app |
-| Alternative Webadresse | www.taktelio.app → taktelio.app |
+| App (kanonisch) | https://www.taktelio.app |
+| Alternative Webadresse | taktelio.app → www.taktelio.app (308) |
 | Versanddomain in Resend | taktelio.app (eingerichtet) |
 | Absender | Den bereits in Supabase/Resend verifizierten Absender beibehalten |
 | SMTP-Host | smtp.resend.com |
@@ -24,7 +24,7 @@ Der Versand über Resend richtet kein Postfach für eingehende Antworten ein. Di
 3. In Resend die Versanddomain `taktelio.app` verwenden. Die dort angezeigten DNS-Einträge einschließlich SPF und DKIM übernehmen und verifizieren. Bestehende Mail-Einträge der Hauptdomain erhalten. Keine erfundenen DNS-Werte verwenden.
 4. Resend API-Key für den Mailversand erstellen. In Supabase unter Authentication → Email → SMTP Settings die obigen SMTP-Werte und den Absender eintragen. Klick-Tracking für Auth-Mails deaktiviert lassen.
 5. In Supabase die folgenden Vorlagen eintragen. Der Upload dieser Dateien zu GitHub aktiviert sie nicht automatisch.
-6. Erst nach erfolgreicher HTTPS-Prüfung die Supabase Site URL auf `https://taktelio.app` setzen und diese Adresse als Redirect erlauben. `https://taktelio.vercel.app` während der Übergangsphase ebenfalls zulassen.
+6. Erst nach erfolgreicher HTTPS-Prüfung die Supabase Site URL auf `https://www.taktelio.app` setzen und diese Adresse als Redirect erlauben. `https://taktelio.app` (leitet weiter) und `https://taktelio.vercel.app` während der Übergangsphase ebenfalls zulassen.
 7. Auth-Flows von der neuen Domain testen. Für den Domainwechsel ist eine erneute Anmeldung normal: Sitzungscookies sind an den jeweiligen Host gebunden.
 
 ## Vorlagen
@@ -42,7 +42,7 @@ Vereinseinladungen in Taktelio werden derzeit als Link zum Weitergeben erzeugt. 
 
 Ein gültiger Einladungslink zeigt bereits vor der Anmeldung den Vereinsnamen und Anzeigenamen der einladenden Person. Die öffentliche Vorschau liefert ausschließlich diese beiden Felder und benötigt den vollständigen zufälligen Einladungstoken. E-Mail-Adressen und sonstige Profildaten werden nicht öffentlich ausgegeben. Nach Anmeldung mit der bestätigten Empfängeradresse wird zusätzlich die Empfängeradresse angezeigt. Erst „Einladung annehmen“ erstellt die Mitgliedschaft. Abgelaufene, widerrufene, bereits verwendete oder für eine andere Adresse bestimmte Links sind nicht annehmbar.
 
-Für die Registrierung wird die Einladung im Bestätigungs-Redirect `https://taktelio.app/?invite=<token>` weitergegeben. In Supabase muss zusätzlich zum Stammziel `https://taktelio.app` das eng begrenzte Muster `https://taktelio.app/?invite=*` zugelassen sein. Die Live-Allowlist konnte in dieser Sitzung mangels Dashboard-Anmeldung nicht geprüft werden. Ohne das Muster kann die Bestätigung in einem anderen Browser die Einladung verlieren; im ursprünglichen Tab bleibt sie gespeichert.
+Für die Registrierung wird die Einladung im Bestätigungs-Redirect `https://www.taktelio.app/?invite=<token>` weitergegeben. In Supabase muss zusätzlich zum Stammziel `https://www.taktelio.app` das eng begrenzte Muster `https://www.taktelio.app/?invite=*` zugelassen sein. Die Live-Allowlist wurde am 14. November 2026 gelesen: Sie enthält `https://www.taktelio.app`, `https://taktelio.app` und `https://taktelio.vercel.app`, aber noch kein `?invite=*`-Muster. Ohne das Muster kann die Bestätigung in einem anderen Browser die Einladung verlieren; im ursprünglichen Tab bleibt sie gespeichert.
 
 ## Abschließender Funktionstest
 

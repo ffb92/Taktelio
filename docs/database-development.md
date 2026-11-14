@@ -35,6 +35,8 @@ Der Generator setzt die vorhandenen Dateien aus `db/` und die anwendbaren Migrat
 
 Das ist ein Schema-Bootstrap, kein Import produktiver Benutzer, Daten oder Migrationshistorie. Er setzt keine Supabase-Migrationshistorie. Vor späterem Einsatz von CLI-Migrationsbefehlen auf dieser Testdatenbank muss deren Historie separat mit dem Bootstrap abgeglichen werden. Keine Änderungen an der Historie einer bestehenden Produktionsdatenbank aus dieser Anleitung ableiten.
 
+> `supabase/config.toml` enthält lokale Standardwerte. `supabase config push` würde diese gegen das verlinkte Projekt schreiben und dabei unter anderem E-Mail-Bestätigung, OTP-Länge, MFA und Redirect-Allowlist der Produktion überschreiben. Nicht gegen das Produktionsprojekt ausführen; Live-Einstellungen ausschließlich im Dashboard oder gezielt über die Management-API ändern.
+
 Das KI-Gate erhält absichtlich kein Secret. Ohne eigenen Serverzugang, passend eingerichteten Gate-Secret-Hash und freigegebenes Budget bleibt KI deaktiviert. Auth-Redirects, SMTP, Mailvorlagen und Data-API-Konfiguration sind Projekteinstellungen und werden durch diesen Bootstrap nicht eingerichtet. Ihre Anleitung steht in [Domain und Auth-Mails](domain-and-email-setup.md).
 
 ## Lokale Oberfläche mit Testprojekt

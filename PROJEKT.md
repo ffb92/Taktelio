@@ -55,8 +55,8 @@ Für die erste Version ist dieser vollständige Ablauf wichtiger als zusätzlich
 | Gespeicherte Einheiten | Speichern, Liste, Öffnen, Löschen und Übernahme vollständiger lokaler Altentwürfe | Kein Kalender, keine Datumszuordnung, keine Suche und keine Duplizierfunktion |
 | Ausgabe | Druckansicht über den Browser, dadurch PDF über den Druckdialog möglich | Kein eigener PDF-Export und kein Freigabelink |
 | KI-Schutz | Serverprüfung, Kontingente, Budget, Begrenzung laufender Anfragen und idempotente Wiederholung | Pilotkonfiguration; noch kein beschlossenes Geschäftsmodell |
-| Technik | React/Vite, serverseitige API, Supabase, Vercel-Konfiguration und getrennt konfigurierbares Testprojekt | Live-Zustand und produktive Projekteinstellungen nicht vollständig geprüft |
-| Qualität | Gemeinsamer Datenvertrag, 50 bestandene Tests, Datenbanktests, Node-22-Build und lokale Browserprüfung | CI-Datei bisher lokal; kein Linter/Typecheck und kein vollständiger Browser-Abnahmetest |
+| Technik | React/Vite, serverseitige API, Supabase, Vercel-Konfiguration und getrennt konfigurierbares Testprojekt | Deployment, Domain, API und Datenbankanbindung geprüft; Auth-Redirects und SMTP konfiguriert, aber nicht im vollen Ablauf getestet |
+| Qualität | Gemeinsamer Datenvertrag, 50 bestandene Tests, Datenbanktests, Node-22-Build und lokale Browserprüfung | CI läuft bei Push und Pull Request; kein Linter/Typecheck und kein vollständiger Browser-Abnahmetest |
 | Weitere Module | Navigationsplatzhalter für Social Media und Scouting | Keine fertigen Funktionen |
 
 ## 5. Anforderungen an die erste nutzbare Version

@@ -68,9 +68,35 @@ test('API accepts schema-bound slots with an odd training duration',async()=>{
    if(url.includes('/exercises'))return Response.json([]);
    if(url.includes('/rpc/ai_gate'))return Response.json({code:JSON.parse(init.body).action==='reserve'?'reserved':'settled'});
    calls++;const slots=JSON.parse(init.body).text.format.schema.properties.blocks.properties;
-   return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:1000},output:[{content:[{type:'output_text',text:JSON.stringify({...plan,blocks:Object.fromEntries(Object.entries(slots).map(([key,s])=>[key,{...block,minutes:s.properties.minutes.enum[0]}]))})}]}]});
+   return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:1000},output:[{content:[{type:'output_text',text:JSON.stringify({...plan,blocks:Object.fromEntries(Object.entries(slots).map(([key,s])=>[key,{...Object.fromEntries(Object.entries(block).filter(([k])=>!['groups','sourceExerciseId'].includes(k))),minutes:s.properties.minutes.enum[0],allocationId:s.properties.allocationId.enum[0]}]))})}]}]});
   };
   const response=await api(req({criteria:{...c,minutes:47},change:'',mode:'new'}),{OPENAI_API_KEY:'mock',AI_MODEL:'gpt-4.1-mini',AI_LIMIT_SECRET:'mock'});
   assert.equal(response.status,200);assert.equal(calls,1);assert.ok(validatePlan((await response.json()).plan,{...c,minutes:47}));
  }finally{globalThis.fetch=old}
+});
+
+test('every offered allocation covers all players and respects its source exercise across ages and modes',async()=>{
+ const {planAllocations,planIssues,timedPlanSchema,unpackTimedPlan}=await import('../worker/api.mjs');
+ const {selectExercises}=await import('../worker/catalog.mjs');
+ for(const age of ['U9','U11','U13','U15','U17 / U19','Senioren'])for(let players=6;players<=24;players++)for(const mode of ['hybrid','library','new']){
+  const criteria={...c,age,players,minutes:47};
+  const candidates=mode==='new'?[]:selectExercises(criteria);
+  const choices=planAllocations(players,candidates,mode);
+  assert.ok(choices.length);
+  for(const choice of choices){
+   assert.equal(choice.groups.reduce((a,b)=>a+b,0),players);
+   if(mode==='library')assert.ok(choice.sourceExerciseId);
+   if(choice.sourceExerciseId){const e=candidates.find(e=>e.id===choice.sourceExerciseId);assert.ok(e);assert.ok(choice.groups.every(n=>n>=e.playersMin&&n<=e.playersMax))}
+   const timed=timedPlanSchema(47,null,choices);
+   const wire={title:plan.title,summary:plan.summary,blocks:Object.fromEntries(Object.entries(timed.properties.blocks.properties).map(([key,s])=>{
+    assert.ok(s.properties.allocationId.enum.includes(choice.id));assert.ok(!s.properties.groups);assert.ok(!s.properties.sourceExerciseId);
+    const {groups,sourceExerciseId,...rest}=block;
+    return [key,{...rest,minutes:s.properties.minutes.enum[0],allocationId:choice.id}];
+   }))};
+   const unpacked=unpackTimedPlan(wire,timed,choices);
+   assert.deepEqual(planIssues(unpacked,criteria,candidates,mode),[]);
+   wire.blocks.block_1.allocationId='invented';
+   assert.ok(!validatePlan(unpackTimedPlan(wire,timed,choices),criteria));
+  }
+ }
 });

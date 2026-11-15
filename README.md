@@ -57,6 +57,20 @@ Neue Übungen übernehmen dieselbe Struktur wie der bestehende Grundstock. `npm 
 
 GitHub `main` ist mit Vercel verbunden. `vercel.json` definiert Build, Ausgabeordner und API-Routing. Die bestehende Datenbank wird weiterverwendet.
 
+### Reihenfolge bei Schemaänderungen
+
+Code und Datenbank werden getrennt ausgeliefert. Ein Merge auf `main` startet über Vercel automatisch einen Produktionsstand; die Datenbankmigrationen werden dabei **nicht** angewendet. Die CI prüft nur (`npm test`, `npm run build`) und hat mit `contents: read` keinen Datenbankzugriff.
+
+Daraus folgt eine feste Reihenfolge:
+
+1. Migration schreiben und lokal prüfen (`npm run test:db`, Dry-Run gegen das Zielprojekt).
+2. Migration anwenden: `npx supabase db push --remote --dry-run`, danach ohne `--dry-run`.
+3. Erst dann den Stand ausrollen (Merge oder Vercel-Deploy).
+
+Wird zuerst der Code ausgeliefert, fehlen Tabellen, Spalten und Policies, bis die Migration nachgezogen ist. Neue Bereiche und jede Seite, die sie lädt, zeigen in dieser Zeit einen Fehler. Umgekehrt ist eine bereits angewendete, rein additive Migration unschädlich.
+
+Migrationen deshalb additiv halten: neue Tabellen, Spalten mit Default und neue Policies. Bestehende Spalten und Daten nicht im selben Schritt ändern, in dem der Code sie nicht mehr erwartet.
+
 Servervariablen werden ausschließlich in den Vercel-Projekteinstellungen gesetzt, siehe `.env.example`. Keine API-Schlüssel in Git eintragen. Die KI bleibt ohne vollständige Serverkonfiguration deaktiviert. E-Mail-Bestätigung und Passwort-Wiederherstellung benötigen passende Auth-Redirects und funktionierenden Mailversand.
 
 Historische Datenbankdateien bleiben unverändert. Für eine leere Supabase-Testdatenbank lässt sich ein vollständiges Schema einschließlich Übungsgrundstock erzeugen; siehe [Datenbankentwicklung](docs/database-development.md). Das Schema verweigert die Ausführung, sobald im öffentlichen Schema Tabellen existieren. Bereits angewandte Migrationen nicht erneut ausführen.

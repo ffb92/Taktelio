@@ -143,13 +143,13 @@ function EventDetail({workspaceId,event,onChanged,onEdit,onClose}){
 
    {event.notes&&<p className="whitespace-pre-line rounded-xl bg-muted/60 px-4 py-3 text-sm leading-relaxed">{event.notes}</p>}
 
-   {!event.cancelledAt&&<div className="space-y-2 rounded-xl border px-4 py-4">
+   {!event.cancelledAt&&(event.myTeamRole?<div className="space-y-2 rounded-xl border px-4 py-4">
     <p className="text-sm font-medium">Deine Rückmeldung</p>
     <ResponseButtons event={event} busy={!!busy} onRespond={(_,status)=>respond(status)}/>
     <Label htmlFor="event-response-note" className="sr-only">Hinweis zur Rückmeldung</Label>
     <Input id="event-response-note" maxLength={500} value={note} onChange={e=>setNote(e.target.value)} placeholder="Optionaler Hinweis, zum Beispiel spätere Ankunft"/>
     <p className="text-xs text-muted-foreground">{Date.now()>=deadline?'Die Rückmeldefrist ist abgelaufen.':event.responseDeadline?`Rückmeldung bis ${dateFmt.format(new Date(event.responseDeadline))} um ${timeFmt.format(new Date(event.responseDeadline))} Uhr.`:'Rückmeldung bis zum Beginn möglich.'} Der Hinweis wird mit deiner Rückmeldung gespeichert.</p>
-   </div>}
+   </div>:<p className="rounded-xl border bg-muted/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground">Du gehörst nicht zur Mannschaft {event.teamName}. Nur Teilnehmende können zu- oder absagen; die Antworten siehst du unten.</p>)}
 
    <div>
     <div className="flex items-center justify-between gap-2">
@@ -260,7 +260,7 @@ export default function Events({workspaceId}){
       </div>
      </div>
      <div className="mt-3 flex flex-wrap items-center gap-2">
-      {event.cancelledAt?<p className="text-xs text-muted-foreground">Dieser Termin wurde abgesagt.</p>:<ResponseButtons event={event} onRespond={respond}/>}
+      {event.cancelledAt?<p className="text-xs text-muted-foreground">Dieser Termin wurde abgesagt.</p>:event.myTeamRole?<ResponseButtons event={event} onRespond={respond}/>:<p className="text-xs text-muted-foreground">Nur Teilnehmende der Mannschaft können zu- oder absagen.</p>}
       <span className="ml-auto text-xs text-muted-foreground">{event.summary.accepted} zu · {event.summary.open} offen</span>
      </div>
     </div>

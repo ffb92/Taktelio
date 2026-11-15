@@ -1,4 +1,4 @@
-import {cloudContext,cloudQuery} from './storage.mjs';
+import {cloudContext,cloudQuery,upstreamDetail} from './storage.mjs';
 import {isUuid,isoInstant,validEventInput,validResponse} from '../shared/events.mjs';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
@@ -168,6 +168,8 @@ export async function eventsApi(request){
   }
   return json({error:'Unbekannte Aktion.'},400);
  }catch(e){
-  return json({error:e.status===413?e.message:'Terminaktion nicht möglich. Bitte Berechtigung und Angaben prüfen.'},e.status||403);
+  if(e?.upstream)console.error('events_api_failed',JSON.stringify(e.upstream));
+  const message=e.status===413?e.message:'Terminaktion nicht möglich. Bitte Berechtigung und Angaben prüfen.'+upstreamDetail(e);
+  return json({error:message,...(e?.upstream?{upstream:e.upstream}:{})},e.status||403);
  }
 }

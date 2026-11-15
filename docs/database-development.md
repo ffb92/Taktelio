@@ -22,6 +22,28 @@ Geprüft werden:
 
 Mehrere parallele Datenbankverbindungen werden mit PGlite nicht geprüft. Sperrverhalten unter Last sowie die tatsächlich aktivierten Policies der gehosteten Datenbank brauchen eine separate Integrationstestumgebung.
 
+## Migration auf die Produktionsdatenbank anwenden
+
+Code und Schema werden getrennt ausgeliefert. Vercel veröffentlicht bei einem Merge auf `main` den Code; die Migration bleibt ein eigener Schritt. Die CI prüft nur Tests und Build und hat keinen Datenbankschlüssel.
+
+Deshalb zuerst die Migration, dann der Rollout:
+
+```sh
+npx supabase db push --remote --dry-run   # zeigt an, welche Migrationen ausstehen
+npx supabase db push --remote             # wendet sie an
+```
+
+Ein Dry-Run allein garantiert nichts über den Inhalt der Produktionsdatenbank. Prüfungen, die auf vorhandene Objekte zugreifen, gehören vorher ins Dashboard. Betrifft eine Migration eine bestehende Constraint, ihren Namen dort bestätigen:
+
+```sql
+select conname from pg_constraint
+where conrelid = 'public.memberships'::regclass and contype = 'c';
+```
+
+Läuft eine Migration in einer Transaktion in einen Fehler, wird sie vollständig zurückgerollt; die Datenbank bleibt auf dem vorherigen Stand. Ein fehlgeschlagener Push ist deshalb ein sichtbarer Abbruch und kein halber Zustand.
+
+Migrationen additiv halten: neue Tabellen, neue Spalten mit Default, neue Policies. So bleibt ein bereits angewendetes Schema für den noch laufenden alten Code unschädlich.
+
 ## Leere Supabase-Testdatenbank aufbauen
 
 Ein separates, frisches Supabase-Projekt verwenden. Das bestehende Produktionsprojekt ist dafür ungeeignet.

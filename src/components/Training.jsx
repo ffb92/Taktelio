@@ -1,4 +1,5 @@
 import {normalizeRecord} from '../../shared/training-plan.mjs';
+import {ageRule,netPlayTarget} from '../../shared/age-rules.mjs';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {Sparkles,SlidersHorizontal,LibraryBig,ClipboardList,LoaderCircle,Save,Printer,Undo2,WandSparkles,CircleAlert,CheckCircle2,Info} from 'lucide-react';
 import {apiFetch} from '../lib/api.js';
@@ -16,6 +17,13 @@ import {cn} from '@/lib/utils';
 
 const initial={age:'U11',players:12,minutes:75,goal:'Passspiel und Freilaufen',material:'8 Bälle, 12 Hütchen, Leibchen, 2 Minitore',space:'Halber Platz',notes:''};
 const TABS=[['ai','Planen',Sparkles],['library','Übungen',LibraryBig],['saved','Einheiten',ClipboardList]];
+
+function AgeRuleHint({age,minutes}){
+ const rule=ageRule(age);
+ if(!rule)return null;
+ const target=netPlayTarget(age,minutes);
+ return <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{rule.level}: {rule.gameFormat} · Ballgröße {rule.ballSize} · {rule.heading?`Kopfball ${rule.heading}`:'kein Kopfballtraining'}{target>0?` · mind. ${target} Min. Nettospielzeit`:''}.</p>;
+}
 
 export default function Training({workspaceId,onBusy}){
  const [view,setView]=useState('ai'),[criteria,setCriteria]=useState(initial),[mode,setMode]=useState('hybrid'),[record,setRecord]=useState(null),[previous,setPrevious]=useState(null),[change,setChange]=useState(''),[busy,setBusy]=useState(false),[saving,setSaving]=useState(false),[message,setMessage]=useState(''),[status,setStatus]=useState({ready:false,message:'Modellzugang wird geprüft …'}),[catalog,setCatalog]=useState([]),[catalogMessage,setCatalogMessage]=useState('');
@@ -40,7 +48,7 @@ export default function Training({workspaceId,onBusy}){
   }catch(e){if(e.code==='already_finished'||e.code==='conflict'||(e.status&&![401,503,409,429].includes(e.status)))pending.current=null;if(alive.current)setMessage(e.message||'Verbindung unterbrochen. Dein bisheriger Plan bleibt erhalten.')}
   finally{flight.current=false;if(alive.current){setBusy(false);onBusy(false);await refreshStatus()}}
  }
- async function save(){setSaving(true);try{await apiFetch('/api/storage',{workspaceId,body:{action:'save',payload:record}});if(alive.current)setMessage('Einheit für deinen Verein gespeichert.')}catch(e){if(alive.current)setMessage(e.message)}finally{if(alive.current)setSaving(false)}}
+ async function save(){setSaving(true);const updating=!!record.id;try{const d=await apiFetch('/api/storage',{workspaceId,body:{action:'save',id:record.id||null,payload:record}});if(alive.current){if(d.record?.id)setRecord(old=>old?{...old,id:d.record.id}:old);setMessage(updating?'Einheit aktualisiert.':'Einheit für deinen Verein gespeichert.')}}catch(e){if(alive.current)setMessage(e.message)}finally{if(alive.current)setSaving(false)}}
  async function adopt(block){setSaving(true);try{const age={'U9':9,'U11':11,'U13':13,'U15':15,'U17 / U19':17,'Senioren':18}[record.criteria.age];const payload={title:block.title,topic:record.criteria.goal,phase:block.phase,ageMin:age,ageMax:age,playersMin:Math.min(...block.groups),playersMax:Math.max(...block.groups),duration:block.minutes,fieldSize:block.fieldSize,materials:block.materials,organization:block.organization,steps:block.steps,coaching:block.coaching,easier:block.easier,harder:block.harder,diagram:block.diagram,notes:'Aus einer KI-Einheit übernommen. Fachlich ungeprüft.'};const d=await apiFetch('/api/storage',{workspaceId,body:{action:'adopt',payload}});if(alive.current)setMessage(d.existing?'Dieser Entwurf ist bereits vorhanden.':'Übung im Verein gespeichert.');await reloadCatalog()}catch(e){if(alive.current)setMessage(e.message)}finally{if(alive.current)setSaving(false)}}
 
  return <section>
@@ -75,6 +83,7 @@ export default function Training({workspaceId,onBusy}){
        <NativeSelect id="ai-age" value={criteria.age} onChange={e=>field('age',e.target.value)}>
         {['U9','U11','U13','U15','U17 / U19','Senioren'].map(a=><option key={a}>{a}</option>)}
        </NativeSelect>
+       <AgeRuleHint age={criteria.age} minutes={criteria.minutes}/>
       </div>
       <div className="grid grid-cols-2 gap-3">
        <div><Label htmlFor="ai-players" className="mb-1.5">Teilnehmende</Label><Input id="ai-players" type="number" min={6} max={24} value={criteria.players} onChange={e=>field('players',+e.target.value)} required/></div>

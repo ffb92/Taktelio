@@ -19,7 +19,7 @@ export default function Onboarding({invite,user,onLogout,onComplete,onDismiss}){
     <span className="grid size-11 place-items-center rounded-xl bg-white/10"><Building2 className="size-5"/></span>
     <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/65">Dein Verein</p>
     <h1 className="mt-1 text-2xl font-semibold tracking-tight">{invite?'Du wurdest eingeladen':'Willkommen bei Taktelio'}</h1>
-    <p className="mt-2 text-sm leading-relaxed text-primary-foreground/75">{invite?'Bestätige den Beitritt, um mit deinem Team zu planen.':'Lege deinen Verein an. Danach kannst du weitere Mitglieder im Profil einladen.'}</p>
+    <p className="mt-2 text-sm leading-relaxed text-primary-foreground/75">{invite?'Bestätige den Beitritt, um deine Termine zu sehen.':'Lege deinen Verein an. Danach kannst du weitere Mitglieder im Profil einladen.'}</p>
    </div>
 
    <div className="space-y-4 px-6 py-6">
@@ -27,7 +27,7 @@ export default function Onboarding({invite,user,onLogout,onComplete,onDismiss}){
      {checking&&<p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin"/>Einladung wird geprüft …</p>}
      {details&&<>
       <p className="flex items-center gap-2 text-sm"><Users className="size-4 text-primary"/><strong className="font-semibold">{details.inviter}</strong> hat dich in den Verein <strong className="font-semibold">{details.club}</strong> eingeladen.</p>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Einladung für {details.email}. Mit deiner Bestätigung trittst du dem Verein als Trainer bei.</p>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Einladung für {details.email}. Mit deiner Bestätigung trittst du dem Verein als {details.role==='player'?'Spieler':'Trainer'}{details.team?` der Mannschaft ${details.team}`:''} bei.</p>
      </>}
      <p className="mt-3 text-xs text-muted-foreground">Angemeldet als {user?.email}</p>
     </div>}

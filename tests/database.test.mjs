@@ -29,7 +29,7 @@ test('fresh-install assembly accounts for every existing migration',async()=>{
  }
 });
 
-for(const file of ['club-invitations.sql','ai-limits.sql','tenant-isolation.sql']){
+for(const file of ['club-invitations.sql','ai-limits.sql','tenant-isolation.sql','events.sql']){
  test('Postgres security regression: '+file,async()=>{
   const db=await testDatabase();
   try{await db.exec(await readFile(new URL(file,import.meta.url),'utf8'))}

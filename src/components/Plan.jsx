@@ -1,8 +1,10 @@
 import React,{useId} from 'react';
-import {ClipboardPlus,LayoutTemplate,Lightbulb,ListChecks,Users,Clock,ShieldAlert,MapPinned,Wrench} from 'lucide-react';
+import {ClipboardPlus,LayoutTemplate,Lightbulb,ListChecks,Users,Clock,ShieldAlert,MapPinned,Wrench,Gauge,Timer,Repeat} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Card} from '@/components/ui/card';
+import {netPlayTarget} from '../../shared/age-rules.mjs';
+import {cn} from '@/lib/utils';
 
 export function Diagram({diagram:d}){
  const id=useId().replaceAll(':','');
@@ -47,6 +49,14 @@ export function ExerciseContent({exercise:e}){
    <p className="rounded-lg border border-brand-lime/50 bg-brand-lime/15 px-3 py-2 text-sm text-brand-deep"><strong className="font-semibold">Einfacher:</strong> {e.easier}</p>
    <p className="rounded-lg border border-primary/20 bg-secondary px-3 py-2 text-sm text-secondary-foreground"><strong className="font-semibold">Schwerer:</strong> {e.harder}</p>
   </div>
+  {(e.intensity||e.workRest||Number.isInteger(e.netPlayingMinutes))&&<section>
+   <h4 className="mb-1.5 flex items-center gap-2 text-sm font-semibold"><Gauge className="size-4 text-primary"/>Belastung und Erholung</h4>
+   <div className="grid gap-2 sm:grid-cols-2">
+    {e.intensity&&<p className="rounded-lg border bg-muted/40 px-3 py-2 text-sm"><strong className="font-semibold">Intensität:</strong> <span className="text-muted-foreground">{e.intensity}</span></p>}
+    {Number.isInteger(e.netPlayingMinutes)&&<p className="rounded-lg border bg-muted/40 px-3 py-2 text-sm"><strong className="font-semibold">Nettospielzeit:</strong> <span className="text-muted-foreground">{e.netPlayingMinutes} Minuten</span></p>}
+   </div>
+   {e.workRest&&<p className="mt-2 flex items-start gap-2 text-sm leading-relaxed text-muted-foreground"><Repeat className="mt-0.5 size-4 shrink-0 text-primary"/>{e.workRest}</p>}
+  </section>}
  </div>;
 }
 
@@ -57,6 +67,10 @@ export default function Plan({record,onAdopt,busy}){
   <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted-foreground">Gib eure Rahmenbedingungen ein. Hier erscheint dein vollständiger Trainingsentwurf.</p>
  </Card>;
 
+ const totalNet=record.plan.blocks.reduce((n,b)=>n+(Number.isInteger(b.netPlayingMinutes)?b.netPlayingMinutes:0),0);
+ const target=netPlayTarget(record.criteria.age,record.criteria.minutes);
+ const hasNet=totalNet>0;
+
  return <div className="space-y-4">
   <Card className="print-avoid-break gap-0 py-0">
    <div className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
@@ -66,11 +80,13 @@ export default function Plan({record,onAdopt,busy}){
      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{record.plan.summary}</p>
     </div>
    </div>
-   <div className="grid grid-cols-3 gap-px border-t bg-border text-center">
+   <div className={cn('grid gap-px border-t bg-border text-center',hasNet?'grid-cols-2 sm:grid-cols-4':'grid-cols-3')}>
     <div className="bg-card px-2 py-3"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Alter</p><p className="mt-0.5 truncate text-sm font-semibold">{record.criteria.age}</p></div>
     <div className="bg-card px-2 py-3"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Personen</p><p className="mt-0.5 truncate text-sm font-semibold">{record.criteria.players}</p></div>
     <div className="bg-card px-2 py-3"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Minuten</p><p className="mt-0.5 truncate text-sm font-semibold">{record.criteria.minutes}</p></div>
+    {hasNet&&<div className="bg-card px-2 py-3"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Spielzeit</p><p className={cn('mt-0.5 truncate text-sm font-semibold',target>0&&totalNet<target&&'text-amber-600 dark:text-amber-400')}>{totalNet}{target>0&&<span className="font-normal text-muted-foreground"> / {target}</span>}</p></div>}
    </div>
+   {hasNet&&target>0&&totalNet<target&&<p className="border-t bg-amber-50 px-5 py-2 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">Unter dem Richtwert für {record.criteria.age}: geplant sind {totalNet} von mindestens {target} Minuten Nettospielzeit.</p>}
   </Card>
 
   {record.plan.blocks.map((b,i)=><Card className="print-avoid-break gap-0 py-0" key={i}>

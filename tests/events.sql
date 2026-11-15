@@ -105,6 +105,28 @@ do $$ declare n int; begin
  if n<>1 then raise exception 'TEST: coach response visibility %',n;end if;
 end $$;
 
+-- Die Datenbank-API schreibt UPDATE und Upsert mit allen Spalten der Nutzlast.
+-- Diese beiden Wege brauchen deshalb Spaltenrechte, die ein reines serverseitiges
+-- Prüfskript nicht sieht.
+do $$ declare open_event uuid; begin
+ update public.events set team_id=current_setting('test.team')::uuid,title='Bearbeitet',updated_at=now()
+  where id=current_setting('test.event')::uuid;
+ if not found then raise exception 'TEST: event update did not reach a row';end if;
+ insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at)
+ values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,'30000000-0000-4000-8000-000000000002','training','Offener Termin',now()+interval '4 days')
+ returning id into open_event;
+ perform set_config('test.event_open',open_event::text,true);
+end $$;
+
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+do $$ begin
+ insert into public.event_responses(event_id,user_id,status,note,updated_at)
+ values(current_setting('test.event_open')::uuid,auth.uid(),'maybe','Erneut geändert',now())
+ on conflict(event_id,user_id) do update
+  set event_id=excluded.event_id,user_id=excluded.user_id,status=excluded.status,note=excluded.note,updated_at=excluded.updated_at;
+ if not exists(select 1 from public.event_responses where event_id=current_setting('test.event_open')::uuid and user_id=auth.uid() and status='maybe') then raise exception 'TEST: response upsert did not persist';end if;
+end $$;
+
 reset role;
 rollback;
 select 'Teams, player invitations, event visibility, attendance responses and roster privacy passed; transaction rolled back' as result;

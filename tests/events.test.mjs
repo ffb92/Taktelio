@@ -132,6 +132,24 @@ test('team management is closed to players and scoped to the session workspace',
  });
 });
 
+test('a rejected database write names its cause instead of hiding it',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async(url,init={})=>{
+  const target=String(url);
+  if(target.includes('/auth/v1/user'))return Response.json({id:'user-a',email:'a@example.com',email_confirmed_at:'2026-01-01'});
+  if(target.includes('/rest/v1/memberships'))return Response.json([{role:'trainer'}]);
+  if(target.includes('/rest/v1/events')&&(init.method||'GET')==='POST')return Response.json({code:'42501',message:'permission denied for table events'},{status:403});
+  return Response.json([]);
+ };
+ try{
+  const response=await eventsApi(req('/api/events',{action:'create',...base}));
+  const data=await response.json();
+  assert.equal(response.status,403);
+  assert.match(data.error,/42501/);
+  assert.equal(data.upstream.code,'42501');
+ }finally{globalThis.fetch=original}
+});
+
 test('list view returns attendance counts and masks nothing beyond the roster',async()=>withStub({
  role:'player',
  eventGet:[{id:eventId,workspace_id:ws,team_id:teamId,created_by:'coach',kind:'training',title:'Training',starts_at:'2099-01-01T18:00:00Z',ends_at:null,meet_at:null,location:'',notes:'',response_deadline:null,cancelled_at:null,created_at:'2099-01-01T00:00:00Z',updated_at:'2099-01-01T00:00:00Z'}],

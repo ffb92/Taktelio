@@ -7,6 +7,9 @@ import {Card} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {ClipboardList,Clock3,HardDrive,Trash2,FolderOpen,LoaderCircle} from 'lucide-react';
 
+const editedFmt=new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+const edited=r=>{const value=r.updated_at||r.created_at;const date=value?new Date(value):null;return date&&!Number.isNaN(date.getTime())?editedFmt.format(date):null};
+
 export default function SavedPlans({workspaceId,onOpen}){
  function open(record){const valid=normalizeRecord(record);if(valid)onOpen(valid);else setMessage('Diese Einheit ist unvollständig und kann nicht geöffnet werden. Die gespeicherten Daten bleiben erhalten.')}
  const [rows,setRows]=useState([]),[next,setNext]=useState(null),[local,setLocal]=useState(loadLocalDrafts),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
@@ -34,11 +37,11 @@ export default function SavedPlans({workspaceId,onOpen}){
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><ClipboardList className="size-5"/></span>
       <div className="min-w-0">
        <h3 className="truncate font-semibold">{typeof r.payload?.plan?.title==='string'?r.payload.plan.title:'Unvollständige Einheit'}</h3>
-       <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Clock3 className="size-3.5"/>{r.payload?.criteria?.minutes?`${r.payload.criteria.minutes} Minuten`:'Details beim Öffnen prüfen'}</p>
+       <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground"><Clock3 className="size-3.5"/>{r.payload?.criteria?.minutes?`${r.payload.criteria.minutes} Minuten`:'Details beim Öffnen prüfen'}{edited(r)&&<span className="text-muted-foreground/70">· zuletzt bearbeitet {edited(r)}</span>}</p>
       </div>
      </div>
      <div className="flex gap-2 sm:shrink-0">
-      <Button variant="outline" size="sm" onClick={()=>open(r.payload)}><FolderOpen/>Öffnen</Button>
+      <Button variant="outline" size="sm" onClick={()=>open({...r.payload,id:r.id})}><FolderOpen/>Öffnen</Button>
       <Button variant="ghost" size="sm" disabled={busy} onClick={()=>remove(r.id)}><Trash2/>Löschen</Button>
      </div>
     </div>

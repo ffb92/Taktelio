@@ -8,15 +8,16 @@ import {Label} from '@/components/ui/label';
 import {Badge} from '@/components/ui/badge';
 import {NativeSelect} from '@/components/ui/native-select';
 import {Separator} from '@/components/ui/separator';
+import Teams from './Teams.jsx';
 
-const roles={owner:'Vereinsinhaber',admin:'Administrator',trainer:'Trainer'};
+const roles={owner:'Vereinsinhaber',admin:'Administrator',trainer:'Trainer',player:'Spieler'};
 
 function Field({label,htmlFor,children,hint}){
  return <div className="space-y-1.5"><Label htmlFor={htmlFor}>{label}</Label>{children}{hint&&<p className="text-xs leading-relaxed text-muted-foreground">{hint}</p>}</div>;
 }
 
 export default function Profile({user,workspaceId,workspaces,onSwitch,onRename,onLogout,onUserUpdate,busy:aiBusy}){
- const [club,setClub]=useState(null),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[message,setMessage]=useState(''),[link,setLink]=useState(''),[busy,setBusy]=useState(false);
+ const [club,setClub]=useState(null),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[message,setMessage]=useState(''),[link,setLink]=useState(''),[busy,setBusy]=useState(false),[teams,setTeams]=useState([]),[inviteRole,setInviteRole]=useState('trainer'),[inviteTeam,setInviteTeam]=useState('');
  const [profile,setProfile]=useState(()=>({firstName:'',lastName:'',displayName:'',team:'',qualification:'',...user.profile}));
  const profileInput=(key,value)=>setProfile(old=>({...old,[key]:value}));
  const admin=club&&['owner','admin'].includes(club.role);
@@ -25,7 +26,8 @@ export default function Profile({user,workspaceId,workspaces,onSwitch,onRename,o
  const request=(path,body)=>apiFetch(path,{workspaceId,body});
  const applyClub=d=>{setClub({...d.club,role:d.role,members:d.members||[],invitations:d.invitations||[]});setName(d.club.name)};
  async function reload(){const d=await request('/api/club');applyClub(d)}
- useEffect(()=>{if(!workspaceId)return;const controller=new AbortController();apiFetch('/api/club',{workspaceId,signal:controller.signal}).then(applyClub).catch(e=>{if(e.name!=='AbortError')setMessage(e.message)});return()=>controller.abort()},[workspaceId]);
+ const reloadTeams=async()=>{try{const d=await apiFetch('/api/teams',{workspaceId});setTeams(d.teams||[])}catch(error){setMessage(error.message)}}
+ useEffect(()=>{if(!workspaceId)return;const controller=new AbortController();apiFetch('/api/club',{workspaceId,signal:controller.signal}).then(applyClub).catch(e=>{if(e.name!=='AbortError')setMessage(e.message)});apiFetch('/api/teams',{workspaceId,signal:controller.signal}).then(d=>setTeams(d.teams||[])).catch(e=>{if(e.name!=='AbortError')setMessage(e.message)});return()=>controller.abort()},[workspaceId]);
  async function run(action){setBusy(true);setMessage('');try{await action()}catch(error){setMessage(error.message)}finally{setBusy(false)}}
 
  return <section className="space-y-5">
@@ -95,12 +97,25 @@ export default function Profile({user,workspaceId,workspaces,onSwitch,onRename,o
       {club.members.map(m=><div className="flex items-center justify-between gap-3 px-3 py-2.5" key={m.user_id}><span className="truncate text-sm">{m.email}</span><Badge variant="secondary" className="shrink-0">{roles[m.role]||m.role}</Badge></div>)}
      </div>
     </div>
+   </>}
+
+   {club.role!=='player'&&<>
+    <Separator/>
+    <div className="px-5 py-5">
+     <h4 className="flex items-center gap-2 text-sm font-semibold"><Users className="size-4 text-primary"/>Mannschaften</h4>
+     <div className="mt-3"><Teams workspaceId={workspaceId} teams={teams} club={club} role={club.role} onReload={reloadTeams}/></div>
+    </div>
     <Separator/>
     <div className="px-5 py-5">
      <h4 className="flex items-center gap-2 text-sm font-semibold"><Mail className="size-4 text-primary"/>Mitglied einladen</h4>
-     <form className="mt-3" onSubmit={e=>{e.preventDefault();run(async()=>{const d=await request('/api/club/invite',{email});setLink(d.url);setEmail('');await reload();setMessage('Einladung erstellt. Bitte den Link weitergeben.')})}}>
-      <Field label="E-Mail-Adresse" htmlFor="invite-email"><div className="flex flex-col gap-2 sm:flex-row"><Input id="invite-email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required/><Button className="min-h-9 shrink-0" disabled={busy}>Einladungslink erstellen</Button></div></Field>
+     <form className="mt-3 space-y-3" onSubmit={e=>{e.preventDefault();run(async()=>{const role=admin?inviteRole:'player';const teamId=role==='player'?(inviteTeam||teams[0]?.id||''):null;if(role==='player'&&!teamId)return setMessage('Bitte zuerst eine Mannschaft anlegen.');const d=await request('/api/club/invite',{email,role,teamId});setLink(d.url);setEmail('');await reload();setMessage(role==='player'?'Einladung für einen Spieler erstellt. Bitte den Link weitergeben.':'Einladung für einen Trainer erstellt. Bitte den Link weitergeben.')})}}>
+      <div className="grid gap-3 sm:grid-cols-2">
+       <Field label="Rolle" htmlFor="invite-role">{admin?<NativeSelect id="invite-role" value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="trainer">Trainer</option><option value="player">Spieler</option></NativeSelect>:<Input id="invite-role" readOnly value="Spieler"/>}</Field>
+       {(admin?inviteRole:'player')==='player'&&<Field label="Mannschaft" htmlFor="invite-team"><NativeSelect id="invite-team" required value={inviteTeam||teams[0]?.id||''} onChange={e=>setInviteTeam(e.target.value)}>{teams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</NativeSelect></Field>}
+      </div>
+      <Field label="E-Mail-Adresse" htmlFor="invite-email"><div className="flex flex-col gap-2 sm:flex-row"><Input id="invite-email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required/><Button className="min-h-9 shrink-0" disabled={busy||((admin?inviteRole:'player')==='player'&&!teams.length)}>Einladungslink erstellen</Button></div></Field>
      </form>
+     {(admin?inviteRole:'player')==='player'&&!teams.length&&<p className="mt-2 text-xs leading-relaxed text-muted-foreground">Lege zuerst eine Mannschaft an. Spieler werden ihr beim Beitritt automatisch zugeordnet.</p>}
      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Der Link gilt sieben Tage. Es wird keine E-Mail automatisch versendet.</p>
      {link&&<div className="mt-4 space-y-1.5">
       <Label htmlFor="invite-link">Einladungslink</Label>
@@ -114,7 +129,8 @@ export default function Profile({user,workspaceId,workspaces,onSwitch,onRename,o
     <div className="px-5 py-5">
      <h4 className="flex items-center gap-2 text-sm font-semibold"><Link2 className="size-4 text-primary"/>Einladungen</h4>
      <div className="mt-3 space-y-2">
-      {club.invitations.map(i=>{const state=i.accepted_at?'Angenommen':i.revoked_at?'Widerrufen':Date.parse(i.expires_at)<Date.now()?'Abgelaufen':'Offen';return <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2.5" key={i.id}><span className="truncate text-sm">{i.email} · {state}</span>{state==='Offen'&&<Button variant="outline" size="xs" disabled={busy} onClick={()=>run(async()=>{await request('/api/club/revoke',{id:i.id});await reload()})}>Widerrufen</Button>}</div>})}
+      {club.invitations.map(i=>{const state=i.accepted_at?'Angenommen':i.revoked_at?'Widerrufen':Date.parse(i.expires_at)<Date.now()?'Abgelaufen':'Offen';const teamName=teams.find(t=>t.id===i.team_id)?.name;return <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2.5" key={i.id}><span className="min-w-0 truncate text-sm">{i.email} · {(i.role||'trainer')==='player'?'Spieler':'Trainer'}{teamName?` · ${teamName}`:''} · {state}</span>{state==='Offen'&&<Button variant="outline" size="xs" disabled={busy} onClick={()=>run(async()=>{await request('/api/club/revoke',{id:i.id});await reload()})}>Widerrufen</Button>}</div>})}
+      {!club.invitations.length&&<p className="text-xs text-muted-foreground">Noch keine Einladung erstellt.</p>}
      </div>
     </div>
    </>}

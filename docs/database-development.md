@@ -17,6 +17,7 @@ Geprüft werden:
 - KI-Gate-Secret, Kontingente, Budget, Wiederholungen, laufende Anfragen, Abrechnung und Monatswechsel.
 - Trennung zwischen zwei Vereinen, Verhinderung gefälschter Eigentümerschaft und Schreibschutz des globalen Katalogs.
 - Persönliche Pläne bleiben auch gegenüber anderen Mitgliedern desselben Vereins privat; eigene Vereinsübungen sind innerhalb des Vereins sichtbar.
+- Ein Plan darf nur vom Eigentümer aktualisiert werden; Vereinsfremde und anonyme Rollen können weder lesen noch ändern. Die Spaltenrechte erlauben nur `payload` und `updated_at`.
 - Anonyme Rollen dürfen keine Pläne oder Mitgliedschaften auslesen.
 
 Mehrere parallele Datenbankverbindungen werden mit PGlite nicht geprüft. Sperrverhalten unter Last sowie die tatsächlich aktivierten Policies der gehosteten Datenbank brauchen eine separate Integrationstestumgebung.

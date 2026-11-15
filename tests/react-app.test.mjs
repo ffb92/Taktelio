@@ -10,7 +10,8 @@ const {render,screen,fireEvent,waitFor,cleanup}=await import('@testing-library/r
 const {default:App}=await import('../src/App.jsx');
 const {default:Auth}=await import('../src/components/Auth.jsx');
 const realFetch=globalThis.fetch;
-const clubA={id:'11111111-1111-4111-8111-111111111111',name:'Verein A'},clubB={id:'22222222-2222-4222-8222-222222222222',name:'Verein B'};
+const clubA={id:'11111111-1111-4111-8111-111111111111',name:'Verein A',role:'trainer'},clubB={id:'22222222-2222-4222-8222-222222222222',name:'Verein B',role:'trainer'};
+const teamA={id:'33333333-3333-4333-8333-333333333333',name:'U13',memberCount:2,myRole:null};
 function mockBackend(clubs){
  let authenticated=false;const calls=[];
  globalThis.fetch=async(path,options={})=>{
@@ -22,6 +23,8 @@ function mockBackend(clubs){
   if(path==='/api/workspaces')return Response.json({workspaces:clubs});
   if(path==='/api/status')return Response.json({ready:false,message:'KI-Zugang noch nicht eingerichtet.'});
   if(path==='/api/exercises')return Response.json({exercises:[]});
+  if(path==='/api/teams')return Response.json({role:'trainer',canManage:true,teams:clubs.length?[teamA]:[]});
+  if(path==='/api/events')return Response.json({role:'trainer',canManage:true,events:[]});
   if(path==='/api/club')return Response.json({club:clubs.find(c=>c.id===options.headers['x-workspace-id']),role:'trainer',members:[],invitations:[]});
   throw Error('Unexpected request: '+path);
  };return calls;
@@ -36,6 +39,33 @@ test('new members must create a club before training and navigation become avail
 test('club switching scopes requests and logout clears all club UI',async()=>{
  try{const calls=mockBackend([clubA,clubB]);render(React.createElement(App));await login();await screen.findByRole('button',{name:'KI-Training erstellen'});fireEvent.click(screen.getByRole('button',{name:'Profil & Verein'}));await screen.findByDisplayValue('Verein A');fireEvent.change(screen.getByLabelText('Verein wechseln'),{target:{value:clubB.id}});await screen.findByDisplayValue('Verein B');await waitFor(()=>assert.ok(calls.some(c=>c.path==='/api/exercises'&&c.options.headers['x-workspace-id']===clubB.id)));fireEvent.click(screen.getByRole('button',{name:'Abmelden'}));await screen.findByRole('button',{name:'Anmelden',exact:true});assert.equal(screen.queryByRole('button',{name:'Profil & Verein'}),null);assert.equal(screen.queryByRole('button',{name:'KI-Training erstellen'}),null)}finally{cleanup();globalThis.fetch=realFetch;localStorage.clear()}
 });
+test('players see their team events and respond without the trainer planner',async()=>{
+ const playerClub={...clubA,role:'player'};
+ const event={id:'44444444-4444-4444-8444-444444444444',teamId:teamA.id,teamName:'U13',kind:'training',title:'Abschlusstraining',startsAt:'2099-12-01T18:00:00.000Z',endsAt:'2099-12-01T19:30:00.000Z',meetAt:null,location:'Sportplatz',notes:'',responseDeadline:null,cancelledAt:null,canManage:false,myTeamRole:'player',myUserId:'test-user',myResponse:null,summary:{accepted:0,declined:0,maybe:0,open:2,total:2},roster:[{userId:'test-user',name:'Alex',teamRole:'player'},{userId:'other-user',name:'Bea',teamRole:'player'}],responses:[]};
+ let authenticated=false;const calls=[];
+ globalThis.fetch=async(path,options={})=>{
+  calls.push({path,options});
+  if(path==='/api/auth/refresh')return Response.json({error:'Bitte anmelden'},{status:401});
+  if(path==='/api/auth/me')return Response.json(authenticated?{user:{id:'test-user',email:'player@example.com'}}:{user:null},{status:authenticated?200:401});
+  if(path==='/api/auth/login'){authenticated=true;return Response.json({ok:true})}
+  if(path==='/api/workspaces')return Response.json({workspaces:[playerClub]});
+  if(path==='/api/events')return Response.json({role:'player',canManage:false,events:[event]});
+  if(path==='/api/teams')return Response.json({role:'player',canManage:false,teams:[{...teamA,myRole:'player'}]});
+  if(path==='/api/events/respond')return Response.json({ok:true});
+  throw Error('Unexpected request: '+path);
+ };
+ try{
+  render(React.createElement(App));
+  await login();
+  await screen.findByRole('heading',{name:'Termine und Anwesenheit'});
+  assert.equal(screen.queryByRole('button',{name:'KI-Training erstellen'}),null);
+  assert.ok(screen.getByRole('button',{name:'Termine'}));
+  await screen.findByText('Abschlusstraining');
+  fireEvent.click(screen.getByRole('button',{name:'Zusage'}));
+  await waitFor(()=>{const call=calls.find(c=>c.path==='/api/events/respond');assert.ok(call);assert.deepEqual(JSON.parse(call.options.body),{eventId:event.id,status:'accepted',note:''})});
+ }finally{cleanup();globalThis.fetch=realFetch;localStorage.clear()}
+});
+
 test('React planner retries uncertain requests with the same ID and saves the result',async()=>{
  const {default:Training}=await import('../src/components/Training.jsx');
  const ids=[];let saved;

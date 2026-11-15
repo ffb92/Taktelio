@@ -27,12 +27,12 @@ export default function Auth({onLogin,initialMessage='',invite}){
  async function recover(){if(!email.includes('@'))return setMessage('Bitte zuerst deine E-Mail-Adresse eingeben.');setBusy(true);try{await apiFetch('/api/auth/recover',{body:{email}});setMessage('Falls ein Konto existiert, erhältst du eine E-Mail zum Zurücksetzen.')}catch(error){setMessage(error.message)}finally{setBusy(false)}}
 
  return <div className="min-h-dvh bg-background lg:grid lg:grid-cols-[1.05fr_1fr]">
-  <aside className="relative hidden overflow-hidden bg-primary px-12 py-10 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
+  <aside className="relative hidden overflow-hidden bg-primary px-12 py-10 text-primary-foreground lg:flex lg:flex-col">
    <img src="/images/auth-hero-photo.webp" alt="" aria-hidden="true" decoding="async" className="absolute inset-0 size-full object-cover object-[62%_42%]"/>
    <div className="absolute inset-0 bg-gradient-to-b from-primary/90 via-primary/60 to-primary/25" aria-hidden="true"/>
    <div className="absolute inset-0 bg-gradient-to-r from-primary/75 via-primary/20 to-transparent" aria-hidden="true"/>
    <div className="relative"><InvertedBrand/></div>
-   <div className="relative max-w-lg">
+   <div className="relative max-w-lg lg:my-auto">
     <Badge className="bg-white/10 text-primary-foreground hover:bg-white/10">Für Fußballtrainer</Badge>
     <h1 className="mt-5 text-5xl font-semibold leading-[1.05] tracking-tight">Mehr Zeit<br/>auf dem Platz.</h1>
     <p className="mt-5 text-base leading-relaxed text-primary-foreground/75">Dein Training, deine Übungen und dein Team – an einem Ort.</p>
@@ -42,7 +42,6 @@ export default function Auth({onLogin,initialMessage='',invite}){
      <li className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-lg bg-white/10"><ShieldCheck className="size-4"/></span>Gemeinsam im Verein, getrennt nach Rolle.</li>
     </ul>
    </div>
-   <p className="relative text-xs text-primary-foreground/60">Taktelio · Gemeinsam besser trainieren.</p>
   </aside>
 
   <div className="flex min-h-dvh flex-col">
@@ -68,7 +67,7 @@ export default function Auth({onLogin,initialMessage='',invite}){
        {invite&&<div className="rounded-xl border border-primary/15 bg-primary/5 p-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Einladung</p>
         <h3 className="mt-1 text-base font-semibold">{invitation?'Einladung zu '+invitation.club:'Einladung zu einem Verein'}</h3>
-        {checking?<p role="status" className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin"/>Einladung wird geprüft …</p>:invitation?<><p className="mt-2 text-sm leading-relaxed text-muted-foreground"><strong className="text-foreground">{invitation.inviter}</strong> hat dich in den Verein <strong className="text-foreground">{invitation.club}</strong> eingeladen.</p><p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">Melde dich mit der eingeladenen E-Mail-Adresse an oder erstelle damit ein Konto. Anschließend kannst du den Beitritt bestätigen.</p></>:<p role="status" className="mt-2 text-sm text-destructive">{inviteError}</p>}
+        {checking?<p role="status" className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin"/>Einladung wird geprüft …</p>:invitation?<><p className="mt-2 text-sm leading-relaxed text-muted-foreground"><strong className="text-foreground">{invitation.inviter}</strong> hat dich in den Verein <strong className="text-foreground">{invitation.club}</strong> eingeladen.</p><p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">Du trittst als {invitation.role==='player'?'Spieler':'Trainer'}{invitation.team?` der Mannschaft ${invitation.team}`:''} bei. Melde dich mit der eingeladenen E-Mail-Adresse an oder erstelle damit ein Konto. Anschließend kannst du den Beitritt bestätigen.</p></>:<p role="status" className="mt-2 text-sm text-destructive">{inviteError}</p>}
        </div>}
 
        <div>

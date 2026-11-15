@@ -28,7 +28,6 @@ export function startSession(){
     if(hash.has('error')){history.replaceState(null,'',location.pathname);return {user:null,recovery:false,error:'Dieser E-Mail-Link ist ungültig oder abgelaufen. Bitte einen neuen Link anfordern.'}}
     if(recovery)query.set('flow','reset');
     if(hash.has('access_token')||invite||recovery)history.replaceState(null,'',location.pathname+(query.size?'?'+query:'')+(hash.has('access_token')?'':location.hash));
-    storage.remove('sc27-cloud-session',true);
     try{
       if(hash.has('access_token')){const callback=await apiFetch('/api/auth/callback',{body:{access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token'),type:hash.get('type')}});if(callback.recovery){history.replaceState(null,'','/?flow=reset');return {user:null,recovery:true}}}
       if(recovery){await apiFetch('/api/auth/recovery-status');return {user:null,recovery:true}}

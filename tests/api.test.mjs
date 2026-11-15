@@ -1,6 +1,8 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {api,validatePlan} from '../worker/api.mjs';import {catalog} from '../worker/catalog.mjs';
 const c={age:'U11',players:12,minutes:60,goal:'Passen',material:'Bälle',space:'Platz',notes:''};
-const block={sourceExerciseId:'',title:'Spiel',phase:'Hauptteil',minutes:30,groups:[6,6],organization:'Zwei Felder',materials:'Bälle',fieldSize:'20 x 20',steps:['Spielen'],coaching:['Anbieten'],easier:'Mehr Raum',harder:'Weniger Raum',diagram:{caption:'Gruppe',objects:[],arrows:[]}};const plan={title:'Training',summary:'Passspiel',blocks:[block,block]};
+const block={sourceExerciseId:'',title:'Spiel',phase:'Hauptteil',minutes:30,groups:[6,6],organization:'Zwei Felder',materials:'Bälle',fieldSize:'20 x 20',steps:['Spielen'],coaching:['Anbieten'],easier:'Mehr Raum',harder:'Weniger Raum',intensity:'mittel',workRest:'3 × 4 Min., 90 Sek. Pause',netPlayingMinutes:12,diagram:{caption:'Gruppe',objects:[],arrows:[]}};
+const game={...block,phase:'Spielform',title:'Abschlussspiel'};
+const plan={title:'Training',summary:'Passspiel',blocks:[block,game]};
 const req=(body,extra={})=>new Request('https://example.com/api/plan',{method:'POST',headers:{origin:'https://example.com',cookie:'__Host-trainer-access=token','x-workspace-id':'11111111-1111-4111-8111-111111111111',...extra},body:JSON.stringify({requestId:crypto.randomUUID(),...body})});
 test('validates duration and group totals',()=>{assert.ok(validatePlan(plan,c));assert.ok(!validatePlan(plan,{...c,minutes:75}));assert.ok(!validatePlan(plan,{...c,players:13}))});
 test('requires real account even with platform header',async()=>assert.equal((await api(new Request('https://example.com/api/exercises',{headers:{'oai-authenticated-user-id':'test'}}),{})).status,401));
@@ -16,7 +18,7 @@ test('repairs invalid duration once and settles both provider costs in one reser
    if(url.includes('/rpc/ai_gate')){const b=JSON.parse(init.body);if(b.action==='reserve')reserves++;else details=b.details;return Response.json({code:b.action==='reserve'?'reserved':'settled'})}
    calls++;const payload=JSON.parse(init.body);
    if(calls===2)assert.deepEqual(JSON.parse(payload.input).validationErrors,['duration']);
-   return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:1000},output:[{content:[{type:'output_text',text:JSON.stringify(calls===1?{...plan,blocks:[{...block,minutes:20},block]}:plan)}]}]});
+   return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:1000},output:[{content:[{type:'output_text',text:JSON.stringify(calls===1?{...plan,blocks:[{...block,minutes:20},game]}:plan)}]}]});
   };
   const response=await api(req({criteria:c,change:''}),{OPENAI_API_KEY:'mock',AI_MODEL:'gpt-4.1-mini',AI_LIMIT_SECRET:'mock'});
   assert.equal(response.status,200);assert.equal(calls,2);assert.equal(reserves,1);
@@ -33,7 +35,7 @@ test('invalid field groups remain rejected after one correction and do not consu
    if(url.includes('/exercises'))return Response.json([{id:'exercise',workspace_id:null,payload:{...catalog[0],id:'exercise',playersMin:6,playersMax:12}}]);
    if(url.includes('/rpc/ai_gate')){const b=JSON.parse(init.body);details=b.details;return Response.json({code:b.action==='reserve'?'reserved':'settled'})}
    calls++;
-   return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:1000},output:[{content:[{type:'output_text',text:JSON.stringify({...plan,blocks:[{...block,sourceExerciseId:'exercise',groups:[4,4,4]},block]})}]}]});
+   return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:1000},output:[{content:[{type:'output_text',text:JSON.stringify({...plan,blocks:[{...block,sourceExerciseId:'exercise',groups:[4,4,4]},game]})}]}]});
   };
   const response=await api(req({criteria:c,change:''}),{OPENAI_API_KEY:'mock',AI_MODEL:'gpt-4.1-mini',AI_LIMIT_SECRET:'mock'});
   assert.equal(response.status,422);assert.equal(calls,2);assert.equal(details.outcome,'failed');assert.equal(details.cost_microusd,4000);
@@ -51,7 +53,7 @@ test('server fixes exact slot durations for every supported total and preserves 
    assert.equal(durations.reduce((a,b)=>a+b,0),minutes);
    assert.ok(durations.every(n=>Number.isInteger(n)&&n>0));
    assert.equal(durations.length,previous?2:4);
-   const wire={title:plan.title,summary:plan.summary,blocks:Object.fromEntries(Object.keys(slots).map((key,i)=>[key,{...block,minutes:durations[i]}]))};
+   const wire={title:plan.title,summary:plan.summary,blocks:Object.fromEntries(Object.keys(slots).map((key,i)=>[key,{...block,minutes:durations[i],netPlayingMinutes:durations[i]}]))};
    assert.ok(validatePlan(unpackTimedPlan(wire,timed),{...c,minutes}));
    wire.blocks.block_1.minutes++;
    assert.ok(!validatePlan(unpackTimedPlan(wire,timed),{...c,minutes}));
@@ -68,7 +70,7 @@ test('API accepts schema-bound slots with an odd training duration',async()=>{
    if(url.includes('/exercises'))return Response.json([]);
    if(url.includes('/rpc/ai_gate'))return Response.json({code:JSON.parse(init.body).action==='reserve'?'reserved':'settled'});
    calls++;const slots=JSON.parse(init.body).text.format.schema.properties.blocks.properties;
-   return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:1000},output:[{content:[{type:'output_text',text:JSON.stringify({...plan,blocks:Object.fromEntries(Object.entries(slots).map(([key,s])=>[key,{...Object.fromEntries(Object.entries(block).filter(([k])=>!['groups','sourceExerciseId'].includes(k))),minutes:s.properties.minutes.enum[0],allocationId:s.properties.allocationId.enum[0]}]))})}]}]});
+   return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:1000},output:[{content:[{type:'output_text',text:JSON.stringify({...plan,blocks:Object.fromEntries(Object.entries(slots).map(([key,s])=>[key,{...Object.fromEntries(Object.entries(game).filter(([k])=>!['groups','sourceExerciseId'].includes(k))),minutes:s.properties.minutes.enum[0],netPlayingMinutes:s.properties.minutes.enum[0],allocationId:s.properties.allocationId.enum[0]}]))})}]}]});
   };
   const response=await api(req({criteria:{...c,minutes:47},change:'',mode:'new'}),{OPENAI_API_KEY:'mock',AI_MODEL:'gpt-4.1-mini',AI_LIMIT_SECRET:'mock'});
   assert.equal(response.status,200);assert.equal(calls,1);assert.ok(validatePlan((await response.json()).plan,{...c,minutes:47}));
@@ -90,8 +92,8 @@ test('every offered allocation covers all players and respects its source exerci
    const timed=timedPlanSchema(47,null,choices);
    const wire={title:plan.title,summary:plan.summary,blocks:Object.fromEntries(Object.entries(timed.properties.blocks.properties).map(([key,s])=>{
     assert.ok(s.properties.allocationId.enum.includes(choice.id));assert.ok(!s.properties.groups);assert.ok(!s.properties.sourceExerciseId);
-    const {groups,sourceExerciseId,...rest}=block;
-    return [key,{...rest,minutes:s.properties.minutes.enum[0],allocationId:choice.id}];
+    const {groups,sourceExerciseId,...rest}=game;
+    return [key,{...rest,minutes:s.properties.minutes.enum[0],netPlayingMinutes:s.properties.minutes.enum[0],allocationId:choice.id}];
    }))};
    const unpacked=unpackTimedPlan(wire,timed,choices);
    assert.deepEqual(planIssues(unpacked,criteria,candidates,mode),[]);

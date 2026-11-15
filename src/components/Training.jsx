@@ -1,5 +1,5 @@
 import {normalizeRecord} from '../../shared/training-plan.mjs';
-import {ageRule} from '../../shared/age-rules.mjs';
+import {ageRule,netPlayTarget} from '../../shared/age-rules.mjs';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {Sparkles,SlidersHorizontal,LibraryBig,ClipboardList,LoaderCircle,Save,Printer,Undo2,WandSparkles,CircleAlert,CheckCircle2,Info} from 'lucide-react';
 import {apiFetch} from '../lib/api.js';
@@ -18,10 +18,11 @@ import {cn} from '@/lib/utils';
 const initial={age:'U11',players:12,minutes:75,goal:'Passspiel und Freilaufen',material:'8 Bälle, 12 Hütchen, Leibchen, 2 Minitore',space:'Halber Platz',notes:''};
 const TABS=[['ai','Planen',Sparkles],['library','Übungen',LibraryBig],['saved','Einheiten',ClipboardList]];
 
-function AgeRuleHint({age}){
+function AgeRuleHint({age,minutes}){
  const rule=ageRule(age);
  if(!rule)return null;
- return <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{rule.level}: {rule.gameFormat} · Ballgröße {rule.ballSize} · {rule.heading?`Kopfball ${rule.heading}`:'kein Kopfballtraining'}.</p>;
+ const target=netPlayTarget(age,minutes);
+ return <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{rule.level}: {rule.gameFormat} · Ballgröße {rule.ballSize} · {rule.heading?`Kopfball ${rule.heading}`:'kein Kopfballtraining'}{target>0?` · mind. ${target} Min. Nettospielzeit`:''}.</p>;
 }
 
 export default function Training({workspaceId,onBusy}){
@@ -82,7 +83,7 @@ export default function Training({workspaceId,onBusy}){
        <NativeSelect id="ai-age" value={criteria.age} onChange={e=>field('age',e.target.value)}>
         {['U9','U11','U13','U15','U17 / U19','Senioren'].map(a=><option key={a}>{a}</option>)}
        </NativeSelect>
-       <AgeRuleHint age={criteria.age}/>
+       <AgeRuleHint age={criteria.age} minutes={criteria.minutes}/>
       </div>
       <div className="grid grid-cols-2 gap-3">
        <div><Label htmlFor="ai-players" className="mb-1.5">Teilnehmende</Label><Input id="ai-players" type="number" min={6} max={24} value={criteria.players} onChange={e=>field('players',+e.target.value)} required/></div>

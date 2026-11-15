@@ -17,6 +17,7 @@ Ausgangsstand: `d994898` auf `main`. Aktualisiert am 14. November 2026 für `f77
 - **50 Tests unter Node 22.23.5 bestanden**: vollständiger Lauf mit 49 Tests, danach die ergänzte Altbestandsprüfung zusammen mit allen sechs React-Tests erfolgreich nachgeprüft.
 - Lokal am 15. November 2026 nach der Einführung der Altersregeln: 59 Tests und Produktionsbuild erfolgreich; die Änderung ist noch nicht committed oder veröffentlicht.
 - Lokal am 15. November 2026 nach der Bereinigung von Speichern und Altresten: 71 Tests inklusive Datenbanktests und Produktionsbuild erfolgreich. Die Migration `20261115120000_training_plan_updates.sql` ist noch nicht auf die Produktionsdatenbank angewendet.
+- Lokal am 15. November 2026 nach Nettospielzeit und Erholung: 75 Tests und Produktionsbuild erfolgreich. Neue Angaben sind Pflicht für KI-Pläne, für ältere gespeicherte Einheiten aber optional, damit sie lesbar bleiben.
 - Produktionsbuild unter Node 22 erfolgreich.
 - Lokaler Vite-Start und Darstellung der Anmeldeseite im echten Browser erfolgreich.
 - Der Ursprungsstand wurde ohne Produktionsdaten und ohne kostenpflichtige Modellaufrufe geprüft. Inzwischen sind `f81b907` und `f7757af` committed, gepusht und über Vercel veröffentlicht.

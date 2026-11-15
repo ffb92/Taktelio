@@ -5,15 +5,25 @@
 export const AGE_GROUPS=['U9','U11','U13','U15','U17 / U19','Senioren'];
 
 export const AGE_RULES={
- 'U9':{age:9,level:'F-Jugend',gameFormat:'3 gegen 3, 4 gegen 4 oder 5 gegen 5',maxPlayersPerTeam:5,ballSize:3,heading:'',maxFieldLength:42},
- 'U11':{age:11,level:'E-Jugend',gameFormat:'5 gegen 5 oder 7 gegen 7',maxPlayersPerTeam:7,ballSize:4,heading:'',maxFieldLength:58},
- 'U13':{age:13,level:'D-Jugend',gameFormat:'7 gegen 7 oder 9 gegen 9',maxPlayersPerTeam:9,ballSize:4,heading:'frühestens ab D-Jugend, nur leichte Bälle, wenige Wiederholungen',maxFieldLength:72},
- 'U15':{age:15,level:'C-Jugend',gameFormat:'9 gegen 9 oder 11 gegen 11',maxPlayersPerTeam:11,ballSize:5,heading:'nur mit leichten Bällen, wenige Wiederholungen',maxFieldLength:105},
- 'U17 / U19':{age:17,level:'B-/A-Jugend',gameFormat:'11 gegen 11',maxPlayersPerTeam:11,ballSize:5,heading:'kontrolliert und mit leichten Bällen',maxFieldLength:105},
- 'Senioren':{age:18,level:'Erwachsene',gameFormat:'11 gegen 11',maxPlayersPerTeam:11,ballSize:5,heading:'erlaubt, Technik sauber vermitteln',maxFieldLength:105},
+ 'U9':{age:9,level:'F-Jugend',gameFormat:'3 gegen 3, 4 gegen 4 oder 5 gegen 5',maxPlayersPerTeam:5,ballSize:3,heading:'',maxFieldLength:42,netPlayPerWeek:48},
+ 'U11':{age:11,level:'E-Jugend',gameFormat:'5 gegen 5 oder 7 gegen 7',maxPlayersPerTeam:7,ballSize:4,heading:'',maxFieldLength:58,netPlayPerWeek:48},
+ 'U13':{age:13,level:'D-Jugend',gameFormat:'7 gegen 7 oder 9 gegen 9',maxPlayersPerTeam:9,ballSize:4,heading:'frühestens ab D-Jugend, nur leichte Bälle, wenige Wiederholungen',maxFieldLength:72,netPlayPerWeek:48},
+ 'U15':{age:15,level:'C-Jugend',gameFormat:'9 gegen 9 oder 11 gegen 11',maxPlayersPerTeam:11,ballSize:5,heading:'nur mit leichten Bällen, wenige Wiederholungen',maxFieldLength:105,netPlayPerWeek:48},
+ 'U17 / U19':{age:17,level:'B-/A-Jugend',gameFormat:'11 gegen 11',maxPlayersPerTeam:11,ballSize:5,heading:'kontrolliert und mit leichten Bällen',maxFieldLength:105,netPlayPerWeek:32},
+ 'Senioren':{age:18,level:'Erwachsene',gameFormat:'11 gegen 11',maxPlayersPerTeam:11,ballSize:5,heading:'erlaubt, Technik sauber vermitteln',maxFieldLength:105,netPlayPerWeek:32},
 };
 
 export function ageRule(age){return typeof age==='string'&&Object.hasOwn(AGE_RULES,age)?AGE_RULES[age]:null}
+
+// Recommended net playing time for one session. The DFB figure is a weekly
+// minimum for two sessions, so the session target is half of it and never more
+// than half of a short session.
+export const SESSIONS_PER_WEEK=2;
+export function netPlayTarget(age,minutes){
+ const rule=ageRule(age);
+ if(!rule||!Number.isInteger(minutes)||minutes<=0)return 0;
+ return Math.min(Math.ceil(rule.netPlayPerWeek/SESSIONS_PER_WEEK),Math.floor(minutes/2));
+}
 
 const number=text=>Number(String(text).replace(',','.'));
 const headingPattern=/kopfball|kopfst(?:o|ö)(?:ß|ss)|k(?:o|ö)pfen/i;
@@ -62,5 +72,5 @@ export function blockRuleIssues(block,rule){
 
 export function ruleSummary(rule){
  if(!rule)return '';
- return `Spielform ${rule.gameFormat}. Ballgröße ${rule.ballSize}. ${rule.heading?`Kopfball ${rule.heading}.`:'Kein Kopfballtraining.'} Feld höchstens ${rule.maxFieldLength} m lang. Gruppen pro Feld entsprechend kleiner als im Wettbewerb.`;
+ return `Spielform ${rule.gameFormat}. Ballgröße ${rule.ballSize}. ${rule.heading?`Kopfball ${rule.heading}.`:'Kein Kopfballtraining.'} Feld höchstens ${rule.maxFieldLength} m lang. Gruppen pro Feld entsprechend kleiner als im Wettbewerb. Mindestens ${rule.netPlayPerWeek} Minuten Nettospielzeit pro Woche, verteilt auf kleine Spielformen.`;
 }

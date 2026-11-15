@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {AGE_GROUPS,AGE_RULES,ageRule,blockRuleIssues,fieldLengths,mentionedBallSizes,mentionedFormats,ruleSummary} from '../shared/age-rules.mjs';
+import {AGE_GROUPS,AGE_RULES,ageRule,blockRuleIssues,fieldLengths,mentionedBallSizes,mentionedFormats,ruleSummary,netPlayTarget} from '../shared/age-rules.mjs';
 import {planIssues,api} from '../worker/api.mjs';
+import {matches,schema} from '../shared/training-plan.mjs';
 import {catalog} from '../worker/catalog.mjs';
 
-const block=(overrides={})=>({sourceExerciseId:'',title:'Spiel',phase:'Hauptteil',minutes:30,groups:[6,6],organization:'Zwei Felder',materials:'Bälle',fieldSize:'20 × 20 m',steps:['Spielen'],coaching:['Anbieten'],easier:'Mehr Raum',harder:'Weniger Raum',diagram:{caption:'Gruppe',objects:[],arrows:[]},...overrides});
+const block=(overrides={})=>({sourceExerciseId:'',title:'Spiel',phase:'Hauptteil',minutes:30,groups:[6,6],organization:'Zwei Felder',materials:'Bälle',fieldSize:'20 × 20 m',steps:['Spielen'],coaching:['Anbieten'],easier:'Mehr Raum',harder:'Weniger Raum',intensity:'mittel',workRest:'3 × 4 Min., 90 Sek. Pause',netPlayingMinutes:12,diagram:{caption:'Gruppe',objects:[],arrows:[]},...overrides});
+const plan=(age,blocks)=>({title:'Training',summary:'Passspiel',blocks});
+const criteria=age=>({age,players:12,minutes:60,goal:'Passen',material:'Bälle',space:'Platz',notes:''});
 
 test('every supported age group has one complete rule set',()=>{
  assert.deepEqual(Object.keys(AGE_RULES),AGE_GROUPS);
@@ -83,4 +86,40 @@ test('the model receives the age rules and a repeated violation ends without a s
   assert.match(instructions,/Ballgröße 3/);assert.match(instructions,/Kein Kopfballtraining/);
   assert.equal(rules.ballSize,3);assert.equal(rules.heading,'');
  }finally{globalThis.fetch=old}
+});
+
+test('net playing time target follows the weekly recommendation and the session length',()=>{
+ // 48 minutes per week over two sessions, but never more than half of a short session.
+ assert.equal(netPlayTarget('U9',60),24);
+ assert.equal(netPlayTarget('U13',90),24);
+ assert.equal(netPlayTarget('U17 / U19',60),16);
+ assert.equal(netPlayTarget('Senioren',120),16);
+ assert.equal(netPlayTarget('U9',30),15);
+ assert.equal(netPlayTarget('U9',120),24);
+ assert.equal(netPlayTarget('unbekannt',60),0);
+ assert.equal(netPlayTarget('U9',0),0);
+});
+
+test('session validation requires real game time, load and recovery',()=>{
+ const c=criteria('U11');
+ const good=plan(c.age,[block({minutes:30}),block({minutes:30,phase:'Spielform'})]);
+ assert.deepEqual(planIssues(good,c,catalog,'new'),[]);
+ // A plan without any game block is rejected even when the minutes add up.
+ assert.ok(planIssues(plan(c.age,[block({minutes:30}),block({minutes:30})]),c,catalog,'new').includes('game_block'));
+ // Too little net playing time is rejected.
+ assert.ok(planIssues(plan(c.age,[block({minutes:30,netPlayingMinutes:2}),block({minutes:30,phase:'Spielform',netPlayingMinutes:2})]),c,catalog,'new').includes('net_play_time'));
+ // Every working block needs a load description and a recovery.
+ const noIntensity=block({minutes:30});delete noIntensity.intensity;
+ assert.ok(planIssues(plan(c.age,[noIntensity,block({minutes:30,phase:'Spielform'})]),c,catalog,'new').includes('block_1:intensity'));
+ assert.ok(planIssues(plan(c.age,[block({minutes:30,workRest:'   '}),block({minutes:30,phase:'Spielform'})]),c,catalog,'new').includes('block_1:recovery'));
+ // Net playing time can never exceed the block duration.
+ assert.ok(planIssues(plan(c.age,[block({minutes:30,netPlayingMinutes:40}),block({minutes:30,phase:'Spielform'})]),c,catalog,'new').includes('block_1:net_play'));
+ // A break carries no playing time of its own.
+ assert.ok(planIssues(plan(c.age,[block({minutes:30}),block({minutes:30,phase:'Pause',netPlayingMinutes:5})]),c,catalog,'new').includes('block_2:net_play'));
+});
+
+test('saved units from before the load fields remain readable',()=>{
+ const legacy=structuredClone({criteria:criteria('U11'),mode:'hybrid',plan:plan('U11',[block({minutes:30}),block({minutes:30,phase:'Spielform'})])});
+ for(const b of legacy.plan.blocks){delete b.intensity;delete b.workRest;delete b.netPlayingMinutes}
+ assert.ok(matches(legacy.plan,schema));
 });

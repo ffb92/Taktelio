@@ -40,14 +40,15 @@ test('status exposes quota and reset; database outage fails closed',async()=>{
 });
 test('successful and invalid results settle measured cost; settlement failure is retryable',async()=>{
  const old=fetch;let invalid=false,settlementFails=false,details;
- const block={sourceExerciseId:'',title:'Spiel',phase:'Hauptteil',minutes:30,groups:[6,6],organization:'Zwei Felder',materials:'Bälle',fieldSize:'20 x 20',steps:['Spielen'],coaching:['Anbieten'],easier:'Mehr Raum',harder:'Weniger Raum',diagram:{caption:'Gruppe',objects:[],arrows:[]}};
+ const block={sourceExerciseId:'',title:'Spiel',phase:'Hauptteil',minutes:30,groups:[6,6],organization:'Zwei Felder',materials:'Bälle',fieldSize:'20 x 20',steps:['Spielen'],coaching:['Anbieten'],easier:'Mehr Raum',harder:'Weniger Raum',intensity:'mittel',workRest:'3 × 4 Min., 90 Sek. Pause',netPlayingMinutes:12,diagram:{caption:'Gruppe',objects:[],arrows:[]}};
+ const game={...block,phase:'Spielform'};
  globalThis.fetch=async(url,init)=>{
   if(url.includes('/auth/v1/user'))return Response.json({id:'user-a',email_confirmed_at:'2026-01-01'});
   if(url.includes('/memberships'))return Response.json([{role:'owner'}]);
   if(url.includes('/exercises'))return Response.json([]);
   if(url.includes('/rpc/ai_gate')){const b=JSON.parse(init.body);if(b.action==='finish'){details=b.details;if(settlementFails)throw Error('lost settlement response');return Response.json({code:'settled'})}return Response.json({code:'reserved'})}
   assert.equal(JSON.parse(init.body).service_tier,'default');
-  return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:2000},output:[{content:[{type:'output_text',text:JSON.stringify({title:'Training',summary:'Passspiel',blocks:[block,{...block,minutes:invalid?20:30}]})}]}]});
+  return Response.json({status:'completed',usage:{input_tokens:1000,output_tokens:2000},output:[{content:[{type:'output_text',text:JSON.stringify({title:'Training',summary:'Passspiel',blocks:[block,{...game,minutes:invalid?20:30}]})}]}]});
  };
  try{
   assert.equal((await api(req(),env)).status,200);assert.equal(details.outcome,'succeeded');assert.equal(details.cost_microusd,3600);assert.equal(details.result.plan.title,'Training');

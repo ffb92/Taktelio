@@ -48,16 +48,16 @@ Für die erste Version ist dieser vollständige Ablauf wichtiger als zusätzlich
 | Vereine | Anlegen, Umbenennen, Vereinswechsel und Rollenprüfung | Keine vollständige Oberfläche für Rollenwechsel oder Mitgliedsentfernung |
 | Einladungen | Link erstellen, Vorschau, Empfängerbindung, Annahme, Ablauf und Widerruf | Links werden manuell weitergegeben; kein automatischer Einladungsversand |
 | KI-Planung | Altersgruppe, 6–24 Teilnehmende, 30–120 Minuten, Schwerpunkt, Material, Fläche und Wünsche | Grenzen des aktuellen Produkts, nicht zwingend endgültige Zielgrenzen |
-| Altersregeln | Spielform, Ballgröße, Kopfball und Feldgröße je Altersgruppe als gemeinsame Tabelle (`shared/age-rules.mjs`), im Modellauftrag und in der Prüfung verbindlich; ein Verstoß löst eine Korrekturrunde aus und wird sonst verständlich abgelehnt | Grundlage sind die DFB-Wettbewerbsformen 2024/25 und DFB-Kopfballhinweise; Landesverbände können abweichen, fachliche Freigabe fehlt |
+| Altersregeln | Spielform, Ballgröße, Kopfball, Feldgröße und Nettospielzeit je Altersgruppe als gemeinsame Tabelle (`shared/age-rules.mjs`), im Modellauftrag und in der Prüfung verbindlich; ein Verstoß löst eine Korrekturrunde aus und wird sonst verständlich abgelehnt | Grundlage sind die DFB-Wettbewerbsformen 2024/25 und DFB-Hinweise zu Kopfball und Trainingsphilosophie; Landesverbände können abweichen, fachliche Freigabe fehlt |
 | Planungsmodi | Grundstock + neue Ideen, nur Grundstock, neue Übungen | Bedienung und verständliche Auswahl auf dem Handy noch zu verbessern |
-| Trainingsplan | Phasen, Minuten, Gruppen, Aufbau, Material, Ablauf, Coachingpunkte, Varianten und schematische Feldgrafiken | Fachliche Qualität und Verständlichkeit müssen mit Trainern geprüft werden |
+| Trainingsplan | Phasen, Minuten, Gruppen, Aufbau, Material, Ablauf, Coachingpunkte, Varianten, Intensität, Belastung mit Erholung und Nettospielzeit je Block sowie schematische Feldgrafiken | Fachliche Qualität und Verständlichkeit müssen mit Trainern geprüft werden |
 | Anpassung | Überarbeitung per Texteingabe und Rückkehr zur vorherigen Version | Kein vollständiger Versionsverlauf und keine manuelle Blockbearbeitung |
 | Bibliothek | 40 gemeinsame Übungsentwürfe, Suche, Filter, Detailansicht und Übernahme eigener Entwürfe; Abdeckung für alle Altersgruppen und 6–24 Teilnehmende je Phase geprüft | Alle Übungen fachlich ungeprüft; kein redaktioneller Freigabeprozess |
 | Gespeicherte Einheiten | Speichern, Liste, Öffnen, Löschen und eigene lokale Entwürfe; erneutes Speichern einer geöffneten Einheit aktualisiert die vorhandene Zeile statt eine Kopie anzulegen | Kein Kalender, keine Datumszuordnung, keine Suche und keine Duplizierfunktion; Prototyp-Entwürfe aus der SC27-Version unter dem alten Browserschlüssel werden nicht mehr übernommen |
 | Ausgabe | Druckansicht über den Browser, dadurch PDF über den Druckdialog möglich | Kein eigener PDF-Export und kein Freigabelink |
 | KI-Schutz | Serverprüfung, Kontingente, Budget, Begrenzung laufender Anfragen und idempotente Wiederholung | Pilotkonfiguration; noch kein beschlossenes Geschäftsmodell |
 | Technik | React/Vite, Tailwind CSS und shadcn/ui, serverseitige API, Supabase, Vercel-Konfiguration und getrennt konfigurierbares Testprojekt | Deployment, Domain, API und Datenbankanbindung geprüft; Anmeldung, Passwort-Reset, Einladung und KI-Planung am 14. November 2026 manuell bestätigt |
-| Qualität | Gemeinsamer Datenvertrag, 71 bestandene Tests, Datenbanktests, Node-22-Build und lokale Browserprüfung | CI läuft bei Push und Pull Request; kein Linter/Typecheck und kein vollständiger Browser-Abnahmetest |
+| Qualität | Gemeinsamer Datenvertrag, 75 bestandene Tests, Datenbanktests, Node-22-Build und lokale Browserprüfung | CI läuft bei Push und Pull Request; kein Linter/Typecheck und kein vollständiger Browser-Abnahmetest |
 | Weitere Module | Navigationsplatzhalter für Social Media und Scouting | Keine fertigen Funktionen |
 
 ## 5. Anforderungen an die erste nutzbare Version
@@ -109,7 +109,7 @@ Für die erste Version ist dieser vollständige Ablauf wichtiger als zusätzlich
 | P0 | Mobile Unterbrechungen und Entwurfsschutz | Hintergrundbetrieb, Neuladen und Verbindungsfehler führen weder zu unbemerktem Planverlust noch zu doppelter Generierung |
 | P0 | Fachliche Abnahmefälle | Ein definierter Trainingsfall-Satz geprüft ist und erkannte Inhaltsfehler eingegrenzt oder behoben sind |
 | P0 | Altersregeln im Plan | Spielform, Ballgröße, Kopfball und Feldgröße je Altersgruppe im Modellauftrag und in der Planprüfung verbindlich sind; umgesetzt am 15. November 2026, offen bleibt die fachliche Bestätigung der Tabelle |
-| P1 | Nettospielzeit und Erholung | Jede Einheit mindestens einen Spielform-Block mit geplanter Nettospielzeit (Richtwert 48 Minuten pro Woche U8–U16, 32 Minuten ab U17) und geplante Erholung enthält |
+| P1 | Nettospielzeit und Erholung | Jede Einheit mindestens einen Spielform-Block mit geplanter Nettospielzeit (Richtwert 48 Minuten pro Woche U8–U16, 32 Minuten ab U17) und geplante Erholung enthält; umgesetzt am 15. November 2026 für neue Pläne, ältere Einheiten bleiben ohne diese Angaben lesbar |
 | P1 | Lernziel und Progression | Jeder Block ein Lernziel mit überprüfbarem Erfolgskriterium nennt und die Blockreihenfolge methodisch vom Einfachen zum Schweren aufsteigt |
 | P1 | Torwart und Zeitpuffer | Torwartrolle, Umbauzeiten und ein realistischer Zeitpuffer im Plan vorkommen, ohne die Gesamtdauer zu sprengen |
 | P1 | Mobile Oberfläche für den Kernablauf | Formular, Planübersicht, Übungsblöcke und gespeicherte Einheiten auf den Zielgrößen gut bedienbar sind |

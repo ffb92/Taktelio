@@ -18,7 +18,7 @@ Arbeitsauftrag für DeepSeek in Claude Code. Der Nutzer hat Codex mit der Checkl
 | ☑ | P4 Kalenderzugriff | tests/events.test.mjs und die über tests/database.test.mjs ausgeführten SQL-Fälle nutzen. Einladung mit Mannschaft, Kalenderzugriff, Fristen und wiederholte Rückmeldung aus Spielersicht prüfen. Nur belegte Lücken ändern. |
 | ☑ | P5 Terminansicht | Navigation in src/App.jsx, bestehende Formulare und React-Tests als Muster. Als Trainer Spiel mit Datum, Uhrzeit und Ort anlegen und verschieben. Eine Mannschaftseinladung annehmen, vorhandenes Spiel öffnen und einen danach erstellten zweiten Termin ohne weitere Einladung sehen. Pro Termin getrennt zu- oder absagen. Als Trainer Rückmeldungen nach Reload prüfen. Fehler und Entfernen nach Rollenmatrix testen. |
 | ☑ | P6 Training am Termin | Optional. Erst nach Produktfreigabe den derzeit fehlenden Bezug zwischen Termin und persönlicher Einheit bearbeiten. |
-| ☐ | P7 Unabhängige Abnahme | npm test und npm run build unter Node 22, danach Trainerdurchlauf und Übergabe an einen frischen QA-Chat mit docs/pilot-qa.md. |
+| ☐ | P7 Unabhängige Abnahme | npm test und npm run build unter Node 22, danach Trainerdurchlauf und Übergabe an einen frischen QA-Chat mit docs/pilot-qa.md. Ablauf und Vorlagen stehen in [p7-vorbereitung.md](p7-vorbereitung.md). |
 
 P1-Stand vom 22. November 2026: [QA-Abnahme](p1-qa-abnahme.md) · 93/93 Tests und Build erfolgreich · fünf Testlücken geschlossen · abgenommen.
 P2-Stand vom 22. November 2026: [QA-Übergabe](p2-qa-uebergabe.md) · Unterbrechungsfälle lokal belegt · abgenommen mit offenem Kontrastbefund K1.
@@ -27,6 +27,7 @@ P3-Nachtrag: Mannschaftsrolle `coach` als Zuordnung, Migration `20261122170000_t
 P4-Stand vom 22. November 2026: [QA-Übergabe](p4-qa-uebergabe.md) · Lücke bei wiederholter Termin-Neuanlage nachgewiesen und behoben · 97/97 Tests · abgenommen nach Korrektur.
 P5-Stand vom 22. November 2026: [QA-Übergabe](p5-qa-uebergabe.md) · Löschen ohne Termin-ID und Antwortknöpfe für Trainer behoben · 105/105 Tests · abgenommen nach Korrektur.
 P6-Stand vom 22. November 2026: [QA-Übergabe](p6-qa-uebergabe.md) · freigegeben und umgesetzt · persönlicher Bezug, für Mitspieler privat · 113/113 Tests · abgenommen.
+P7-Stand vom 22. November 2026: [Vorbereitung](p7-vorbereitung.md) · Prüfskript, Urteilsbögen und Betriebsnachweise stehen · Testkonten, Migrationen und Praxistest offen.
 
 **Abschluss je Paket:** Paket-ID · Git-Stand und betroffene Dateien · ausgeführte Schritte · Soll/Ist · offene Punkte · QA-Ergebnis. Produktionsänderungen, Commits und Deployments erfordern einen eigenen Auftrag.
 

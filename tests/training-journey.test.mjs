@@ -219,6 +219,6 @@ test('a library exercise starts the planner with the shared criteria and one of 
   assert.equal(mode.value,'hybrid');
   assert.deepEqual([...mode.options].map(o=>o.value),['hybrid','library','new']);
   assert.equal(screen.getByLabelText('Schwerpunkt').value,'Passspiel');
-  assert.match(screen.getByLabelText('Weitere Wünsche').value,/Passdreieck/);
+  assert.match(screen.getByLabelText(/Weitere Wünsche/).value,/Passdreieck/);
  }finally{cleanup();globalThis.fetch=originalFetch;localStorage.clear()}
 });

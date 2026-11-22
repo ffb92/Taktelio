@@ -12,7 +12,7 @@ Arbeitsauftrag für DeepSeek in Claude Code. Der Nutzer hat Codex mit der Checkl
 
 | Erledigt | Paket aus der [Roadmap](roadmap.md) | Einstieg im Repository und Nachweis |
 | --- | --- | --- |
-| ☐ | P1 Trainingsbestand | src/components/Training.jsx, Plan.jsx, Library.jsx und SavedPlans.jsx im selben Ordner, shared/training-plan.mjs. Jeden vorhandenen Nutzerablauf aus P1 prüfen. Betroffene React- und Vertragstests aus tests/ ausführen. |
+| ☑ | P1 Trainingsbestand | src/components/Training.jsx, Plan.jsx, Library.jsx und SavedPlans.jsx im selben Ordner, shared/training-plan.mjs. Jeden vorhandenen Nutzerablauf aus P1 prüfen. Betroffene React- und Vertragstests aus tests/ ausführen. |
 | ☐ | P2 Mobiler Ablauf | Training.jsx, Sitzungs- und Vereinswechsel in src/App.jsx sowie tests/local-drafts.test.mjs. Ergebnis der Wiederholungsversuche, Kontoabgrenzung und Zielbreiten beilegen. |
 | ☐ | P3 Terminregeln | In Club.jsx und Onboarding.jsx die Mannschaftsauswahl und Annahme nachvollziehen. Die tatsächlichen Rollen aus worker/events.mjs und den Termin-Policies gegen T1/T2 prüfen. Insbesondere Trainer anderer Mannschaften desselben Vereins berücksichtigen. |
 | ☐ | P4 Kalenderzugriff | tests/events.test.mjs und die über tests/database.test.mjs ausgeführten SQL-Fälle nutzen. Einladung mit Mannschaft, Kalenderzugriff, Fristen und wiederholte Rückmeldung aus Spielersicht prüfen. Nur belegte Lücken ändern. |
@@ -20,7 +20,8 @@ Arbeitsauftrag für DeepSeek in Claude Code. Der Nutzer hat Codex mit der Checkl
 | ☐ | P6 Training am Termin | Optional. Erst nach Produktfreigabe den derzeit fehlenden Bezug zwischen Termin und persönlicher Einheit bearbeiten. |
 | ☐ | P7 Unabhängige Abnahme | npm test und npm run build unter Node 22, danach Trainerdurchlauf und Übergabe an einen frischen QA-Chat mit docs/pilot-qa.md. |
 
-P1-Stand vom 22. November 2026: [QA-Übergabe](p1-qa-uebergabe.md) · 82/82 Tests und Build erfolgreich · zwei belegte Abweichungen behoben · unabhängige QA offen.
+P1-Stand vom 22. November 2026: [QA-Abnahme](p1-qa-abnahme.md) · 93/93 Tests und Build erfolgreich · fünf Testlücken geschlossen · abgenommen.
+P2-Stand vom 22. November 2026: [QA-Übergabe](p2-qa-uebergabe.md) · Unterbrechungsfälle lokal belegt · vier Zielbreiten, Bildschirmtastatur und Druckdialog offen.
 
 **Abschluss je Paket:** Paket-ID · Git-Stand und betroffene Dateien · ausgeführte Schritte · Soll/Ist · offene Punkte · QA-Ergebnis. Produktionsänderungen, Commits und Deployments erfordern einen eigenen Auftrag.
 

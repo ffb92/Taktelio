@@ -68,8 +68,8 @@ export default function Library({catalog,onPlan,message}){
      <p className="mt-1 text-xs text-muted-foreground">{e.ageMin}–{e.ageMax} Jahre · {e.playersMin}–{e.playersMax} Personen pro Gruppe · ca. {e.duration} min</p>
      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{e.organization}</p>
      <div className="mt-auto flex flex-wrap gap-2 pt-4">
-      <Button variant="outline" size="sm" onClick={()=>setDetail(e)}><BookOpen/>Aufbau & Ablauf<ArrowUpRight/></Button>
-      <Button size="sm" onClick={()=>onPlan(e)}><Sparkles/>Training damit planen</Button>
+      <Button variant="outline" size="sm" className="min-h-11" onClick={()=>setDetail(e)}><BookOpen/>Aufbau & Ablauf<ArrowUpRight/></Button>
+      <Button size="sm" className="min-h-11" onClick={()=>onPlan(e)}><Sparkles/>Training damit planen</Button>
      </div>
      <p className="mt-3 text-[11px] text-muted-foreground">{e.scope==='global'?'Gemeinsamer Grundstock':'Eigener Verein'} · fachlich ungeprüft</p>
     </div>

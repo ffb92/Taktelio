@@ -218,6 +218,15 @@ do $$ declare n int; begin
  if not exists(select 1 from public.event_responses where event_id=current_setting('test.event_open')::uuid and user_id=auth.uid() and status='declined') then raise exception 'TEST: latest response missing';end if;
 end $$;
 
+-- Ein Trainer der Mannschaft verwaltet Termine, antwortet aber nicht für sich:
+-- Rückmeldungen gehören Spielern.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ begin
+ begin insert into public.event_responses(event_id,user_id,status) values(current_setting('test.event_open')::uuid,auth.uid(),'accepted');
+  raise exception 'TEST: coach answered as player';
+ exception when others then if SQLERRM like 'TEST:%' then raise;end if;end;
+end $$;
+
 reset role;
 rollback;
 select 'Teams, player invitations, event visibility, attendance responses, roster privacy and team coach scope passed; transaction rolled back' as result;

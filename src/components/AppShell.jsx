@@ -1,6 +1,7 @@
 import React from 'react';
-import {CalendarDays,ClipboardList,ChevronRight,Megaphone,Search,Users} from 'lucide-react';
+import {CalendarDays,ClipboardList,ChevronsUpDown,Megaphone,Search,Users,UserRound,Building2,LogOut} from 'lucide-react';
 import {cn} from '@/lib/utils';
+import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuLabel,DropdownMenuSeparator,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 
 const NAV_ITEMS=[
  {id:'training',label:'Training',shortLabel:'Training',icon:ClipboardList,coachOnly:true},
@@ -9,7 +10,8 @@ const NAV_ITEMS=[
  {id:'scouting',label:'Scouting',shortLabel:'Scouting',icon:Search,coachOnly:true},
 ];
 
-const PAGE_TITLES={training:'Training',events:'Termine',social:'Social Media',scouting:'Scouting',profile:'Profil & Verein'};
+const PAGE_TITLES={training:'Training',events:'Termine',social:'Social Media',scouting:'Scouting',profil:'Profil',verein:'Verein',mannschaft:'Mannschaft'};
+const ACCOUNT_PAGES=['profil','verein','mannschaft'];
 
 export function Brand({className}){
   return <div className={cn('flex items-center gap-3',className)}>
@@ -27,12 +29,13 @@ function initials(name){
   return (parts[0][0]+(parts.length>1?parts[parts.length-1][0]:'')).toUpperCase();
 }
 
-export default function AppShell({page,onNavigate,role='trainer',user,workspaces=[],workspaceId,navigation=true,children}){
+export default function AppShell({page,onNavigate,onLogout,role='trainer',user,workspaces=[],workspaceId,navigation=true,children}){
   const club=workspaces.find(w=>w.id===workspaceId);
   const profile=user?.profile||{};
   const fullName=profile.displayName||[profile.firstName,profile.lastName].filter(Boolean).join(' ')||user?.email||'Trainer';
   const items=NAV_ITEMS.filter(item=>!item.coachOnly||role!=='player');
   const columns=items.length>=4?'grid-cols-4':items.length===3?'grid-cols-3':items.length===2?'grid-cols-2':'grid-cols-1';
+  const accountActive=ACCOUNT_PAGES.includes(page);
 
   return <div className="flex min-h-dvh flex-col lg:flex-row">
     {navigation&&<aside className="print-hidden fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card lg:sticky lg:top-0 lg:inset-x-auto lg:bottom-auto lg:flex lg:h-dvh lg:w-72 lg:shrink-0 lg:flex-col lg:border-r lg:border-t-0 lg:bg-sidebar">
@@ -64,14 +67,32 @@ export default function AppShell({page,onNavigate,role='trainer',user,workspaces
         })}
       </nav>
 
-      <button type="button" aria-label="Profil & Verein" aria-current={page==='profile'?'page':undefined} onClick={()=>onNavigate('profile')} className={cn('fixed right-2 top-1 z-40 grid size-12 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 lg:static lg:mt-auto lg:flex lg:size-auto lg:w-full lg:items-center lg:justify-start lg:gap-3 lg:rounded-none lg:border-t lg:border-sidebar-border lg:px-4 lg:py-4',page==='profile'?'lg:bg-sidebar-accent':'lg:hover:bg-sidebar-accent/60')}>
-        <span className={cn('grid size-9 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-shadow',page==='profile'&&'ring-2 ring-brand-lime/70 ring-offset-2 ring-offset-background lg:ring-0 lg:ring-offset-0')}>{initials(fullName)}</span>
-        <span className="hidden min-w-0 flex-1 lg:block">
-          <span className="block truncate text-sm font-semibold leading-tight">{fullName}</span>
-          <span className="block truncate text-xs font-normal text-muted-foreground">{user?.email}</span>
-        </span>
-        <ChevronRight className={cn('hidden size-4 shrink-0 text-muted-foreground lg:block',page==='profile'&&'text-primary')}/>
-      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" aria-label="Konto-Menü" aria-current={accountActive?'page':undefined} className={cn('fixed right-2 top-1 z-40 grid size-12 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 lg:static lg:mt-auto lg:flex lg:size-auto lg:w-full lg:items-center lg:justify-start lg:gap-3 lg:rounded-none lg:border-t lg:border-sidebar-border lg:px-4 lg:py-4',accountActive?'lg:bg-sidebar-accent':'lg:hover:bg-sidebar-accent/60')}>
+            <span className={cn('grid size-9 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-shadow',accountActive&&'ring-2 ring-brand-lime/70 ring-offset-2 ring-offset-background lg:ring-0 lg:ring-offset-0')}>{initials(fullName)}</span>
+            <span className="hidden min-w-0 flex-1 text-left lg:block">
+              <span className="block truncate text-sm font-semibold leading-tight">{fullName}</span>
+              <span className="block truncate text-xs font-normal text-muted-foreground">{user?.email}</span>
+            </span>
+            <ChevronsUpDown className={cn('hidden size-4 shrink-0 text-muted-foreground lg:block',accountActive&&'text-primary')}/>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="end" sideOffset={10} className="w-60">
+          <DropdownMenuLabel className="flex flex-col gap-0.5 px-2 py-2">
+            <span className="truncate text-sm font-semibold text-foreground">{fullName}</span>
+            <span className="truncate text-xs font-normal text-muted-foreground">{user?.email}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator/>
+          <DropdownMenuItem onSelect={()=>onNavigate('profil')}><UserRound/>Profil</DropdownMenuItem>
+          <DropdownMenuItem onSelect={()=>onNavigate('verein')}><Building2/>Verein</DropdownMenuItem>
+          {role!=='player'&&<DropdownMenuItem onSelect={()=>onNavigate('mannschaft')}><Users/>Mannschaft</DropdownMenuItem>}
+          {onLogout&&<>
+            <DropdownMenuSeparator/>
+            <DropdownMenuItem variant="destructive" onSelect={()=>onLogout()}><LogOut/>Abmelden</DropdownMenuItem>
+          </>}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </aside>}
 
     <div className="flex min-w-0 flex-1 flex-col">

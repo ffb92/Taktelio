@@ -5,11 +5,16 @@ import ResetPassword from './components/ResetPassword.jsx';
 import Auth from './components/Auth.jsx';
 import Onboarding from './components/Onboarding.jsx';
 import Profile from './components/Profile.jsx';
+import Club from './components/Club.jsx';
+import TeamsPage from './components/TeamsPage.jsx';
 import Training from './components/Training.jsx';
 import Events from './components/Events.jsx';
 import AppShell from './components/AppShell.jsx';
 import {Badge} from '@/components/ui/badge';
 import {Card} from '@/components/ui/card';
+
+const ALL_PAGES=['training','events','social','scouting','profil','verein','mannschaft'];
+const PLAYER_PAGES=['events','profil','verein'];
 
 function LoadingScreen(){
   return <div className="grid min-h-dvh place-items-center bg-background p-6">
@@ -45,13 +50,13 @@ export default function App(){
   const [user,setUser]=useState(null),[starting,setStarting]=useState(true),[loadingClubs,setLoadingClubs]=useState(false),[workspaces,setWorkspaces]=useState([]),[workspaceId,setWorkspaceId]=useState(null),[invite,setInvite]=useState(null),[page,setPage]=useState('training'),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[recovery,setRecovery]=useState(false);
   const reset=useCallback(()=>{setUser(null);setWorkspaces([]);setWorkspaceId(null);setBusy(false);setPage('training');setMessage('Deine Sitzung ist abgelaufen. Bitte erneut anmelden.')},[]);
   useEffect(()=>{let active=true;startSession().then(d=>{if(!active)return;setUser(d.user);setRecovery(d.recovery);setMessage(d.error||'');setInvite(storage.get('trainer-club-invite',true));setStarting(false)});window.addEventListener('taktelio:session-expired',reset);return()=>{active=false;window.removeEventListener('taktelio:session-expired',reset)}},[reset]);
-  const choose=useCallback((list,preferred)=>{const remembered=storage.get('trainer-workspace-'+user.id);const selected=list.find(w=>w.id===(preferred||remembered))||list[0];setWorkspaces(list);setWorkspaceId(selected?.id||null);setPage(current=>selected?.role==='player'?(current==='profile'?'profile':'events'):(['training','events','social','scouting','profile'].includes(current)?current:'training'));if(selected)storage.set('trainer-workspace-'+user.id,selected.id)},[user?.id]);
+  const choose=useCallback((list,preferred)=>{const remembered=storage.get('trainer-workspace-'+user.id);const selected=list.find(w=>w.id===(preferred||remembered))||list[0];setWorkspaces(list);setWorkspaceId(selected?.id||null);setPage(current=>selected?.role==='player'?(PLAYER_PAGES.includes(current)?current:'events'):(ALL_PAGES.includes(current)?current:'training'));if(selected)storage.set('trainer-workspace-'+user.id,selected.id)},[user?.id]);
   useEffect(()=>{if(!user)return;const controller=new AbortController();setLoadingClubs(true);apiFetch('/api/workspaces',{signal:controller.signal}).then(d=>choose(d.workspaces)).catch(e=>{if(e.name!=='AbortError')setMessage(e.message)}).finally(()=>{if(!controller.signal.aborted)setLoadingClubs(false)});return()=>controller.abort()},[user?.id,choose]);
 
   async function login(){const d=await apiFetch('/api/auth/me');setMessage('');setUser(d.user);setPage('training')}
   async function complete(id){const d=await apiFetch('/api/workspaces');choose(d.workspaces,id);storage.remove('trainer-club-invite',true);setInvite(null);setMessage('')}
   async function logout(){await apiFetch('/api/auth/logout',{body:{}});reset();setMessage('');setRecovery(false)}
-  function switchClub(id){if(busy)return;setWorkspaceId(id);storage.set('trainer-workspace-'+user.id,id);setPage(current=>workspaces.find(w=>w.id===id)?.role==='player'?(current==='profile'?'profile':'events'):current);setMessage('')}
+  function switchClub(id){if(busy)return;setWorkspaceId(id);storage.set('trainer-workspace-'+user.id,id);setPage(current=>workspaces.find(w=>w.id===id)?.role==='player'&&!PLAYER_PAGES.includes(current)?'events':current);setMessage('')}
 
   if(starting)return <LoadingScreen/>;
   if(recovery)return <ResetPassword onComplete={()=>{setRecovery(false);reset();history.replaceState(null,'','/');setMessage('Dein Passwort wurde geändert. Bitte melde dich mit deinem neuen Passwort an.')}} onCancel={async()=>{await logout();history.replaceState(null,'','/')}}/>;
@@ -60,18 +65,22 @@ export default function App(){
   const needsOnboarding=!workspaceId||!!invite;
   const navigation=!loadingClubs&&!needsOnboarding;
   const role=workspaces.find(w=>w.id===workspaceId)?.role||'trainer';
-  const currentPage=role==='player'&&!['events','profile'].includes(page)?'events':page;
+  const currentPage=role==='player'&&!PLAYER_PAGES.includes(page)?'events':page;
 
-  return <AppShell page={currentPage} onNavigate={setPage} role={role} user={user} workspaces={workspaces} workspaceId={workspaceId} navigation={navigation}>
+  return <AppShell page={currentPage} onNavigate={setPage} onLogout={logout} role={role} user={user} workspaces={workspaces} workspaceId={workspaceId} navigation={navigation}>
     {message&&<Notice>{message}</Notice>}
-    {page==='profile'
-      ? <Profile key={workspaceId||'no-club'} user={user} workspaceId={workspaceId} workspaces={workspaces} onSwitch={switchClub} onRename={club=>setWorkspaces(old=>old.map(w=>w.id===club.id?{...w,name:club.name}:w))} onLogout={logout} onUserUpdate={setUser} busy={busy}/>
-      : loadingClubs
-        ? <Card className="items-center py-16"><div className="flex items-center gap-3 text-sm text-muted-foreground" role="status"><LoaderCircle className="size-4 animate-spin"/>Verein wird geladen …</div></Card>
-        : needsOnboarding
-          ? <Onboarding user={user} onLogout={logout} invite={invite} onComplete={complete} onDismiss={()=>{storage.remove('trainer-club-invite',true);setInvite(null)}}/>
-          : null}
-    {navigation&&currentPage!=='training'&&currentPage!=='profile'&&currentPage!=='events'&&<ComingSoon module={currentPage}/>}
+    {loadingClubs
+      ? <Card className="items-center py-16"><div className="flex items-center gap-3 text-sm text-muted-foreground" role="status"><LoaderCircle className="size-4 animate-spin"/>Verein wird geladen …</div></Card>
+      : needsOnboarding
+        ? <Onboarding user={user} onLogout={logout} invite={invite} onComplete={complete} onDismiss={()=>{storage.remove('trainer-club-invite',true);setInvite(null)}}/>
+        : currentPage==='profil'
+          ? <Profile key={workspaceId} user={user} workspaceId={workspaceId} workspaces={workspaces} onSwitch={switchClub} onUserUpdate={setUser} busy={busy}/>
+          : currentPage==='verein'
+            ? <Club key={workspaceId} workspaceId={workspaceId} onRename={club=>setWorkspaces(old=>old.map(w=>w.id===club.id?{...w,name:club.name}:w))}/>
+            : currentPage==='mannschaft'
+              ? <TeamsPage key={workspaceId} workspaceId={workspaceId}/>
+              : null}
+    {navigation&&['social','scouting'].includes(currentPage)&&<ComingSoon module={currentPage}/>}
     {navigation&&currentPage==='events'&&<Events key={user.id+':'+workspaceId} workspaceId={workspaceId}/>}
     {navigation&&role!=='player'&&<div hidden={currentPage!=='training'}><Training key={user.id+':'+workspaceId} workspaceId={workspaceId} onBusy={setBusy}/></div>}
   </AppShell>;

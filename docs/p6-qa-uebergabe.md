@@ -61,14 +61,16 @@ Windows 11, Node 22.23.5, npm 10.9.9.
 
 Offen, nicht als bestanden gewertet.
 
-## Offene Produktentscheidung
+## Abgegrenzung (entschieden)
 
-Der Wunsch „Trainings zuweisen" ist mit P6 **nicht** erfüllt. Soll ein Trainer später eine Einheit für seine Mannschaft freigeben oder einem Termin als gemeinsamen Plan zuordnen, braucht das:
+Der Verein hat am 22. November 2026 bestätigt: Die Einheit wird **dem Termin** zugewiesen, nicht einzelnen Spielern. Eine Freigabe an Mitspieler ist kein Auftrag.
 
-- eine eigene Freigabeebene (wer darf den Plan sehen),
-- eine Entscheidung zu Mitspielern und Minderjährigen,
-- eine Änderung der Plan-Sichtbarkeit, die derzeit bewusst persönlich ist.
+Damit gilt:
+
+- Der Plan bleibt persönlich; nur der Trainer, der ihn verknüpft hat, sieht ihn am Termin.
+- Mitspieler sehen den Termin wie bisher, ohne Planinhalt oder Hinweis auf einen Plan.
+- Eine spätere Freigabe an die Mannschaft wäre eine neue Funktion mit eigener Entscheidung zu Sichtbarkeit und Minderjährigen. Sie ist nicht vorbereitet und nicht nötig.
 
 ## QA-Ergebnis
 
-**Abgenommen.** Alle Kriterien der Roadmap sind belegt; die Privatsphäre ist durch Datenbank, API und Oberfläche dreifach abgesichert und durch Gegenproben geprüft. Die Abgrenzung zur Zuweisung an Spieler ist ausdrücklich festgehalten.
+**Abgenommen.** Alle Kriterien der Roadmap sind belegt; die Privatsphäre ist durch Datenbank, API und Oberfläche dreifach abgesichert und durch Gegenproben geprüft. Die Zuweisung gilt dem Termin; eine Zuweisung an einzelne Spieler ist ausdrücklich nicht Teil des Auftrags.

@@ -66,8 +66,8 @@ export default function SavedPlans({workspaceId,onOpen}){
     {local.map((r,i)=><div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2" key={i}>
      <span className="text-sm">{typeof r?.plan?.title==='string'?r.plan.title:'Unvollständiger Entwurf'}</span>
      <div className="flex gap-2">
-      <Button variant="outline" size="xs" disabled={!normalizeRecord(r)} onClick={()=>open(r)}>Öffnen</Button>
-      <Button variant="ghost" size="xs" onClick={()=>removeLocal(i)}>Löschen</Button>
+      <Button variant="outline" size="xs" className="min-h-11" disabled={!normalizeRecord(r)} onClick={()=>open(r)}>Öffnen</Button>
+      <Button variant="ghost" size="xs" className="min-h-11" onClick={()=>removeLocal(i)}>Löschen</Button>
      </div>
     </div>)}
    </div>

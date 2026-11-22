@@ -9,7 +9,7 @@ const base={teamId,kind:'training',title:'Abschlusstraining',startsAt:'2099-12-0
 const req=(path,body,{method='POST',origin='https://example.com',cookie='__Host-trainer-access=token'}={})=>new Request('https://example.com'+path,{method,headers:{origin,cookie,'x-workspace-id':ws,'Content-Type':'application/json'},...(method==='POST'?{body:JSON.stringify(body||{})}:{})});
 
 // Simuliert die Supabase-REST-Aufrufe des Workers. Kein Netzwerk, keine echte Datenbank.
-function stub({role='trainer',eventGet=[],eventPost=[{id:eventId}],eventPatch=[{id:eventId}],responsePost=[{event_id:eventId,user_id:'user-a',status:'accepted',note:'',updated_at:'2099-01-01T00:00:00Z'}],teamMembers=[],teamPost=[{id:'team-1',name:'U13'}],teamGet=[]}={}){
+function stub({role='trainer',eventGet=[],eventPost=[{id:eventId}],eventPatch=[{id:eventId}],responsePost=[{event_id:eventId,user_id:'user-a',status:'accepted',note:'',updated_at:'2099-01-01T00:00:00Z'}],teamMembers=[],teamPost=[{id:'team-1',name:'U13'}],teamGet=[],plans=[]}={}){
  const calls=[];
  globalThis.fetch=async(url,init={})=>{
   const target=String(url),method=init.method||'GET';
@@ -18,6 +18,7 @@ function stub({role='trainer',eventGet=[],eventPost=[{id:eventId}],eventPatch=[{
   if(target.includes('/auth/v1/user'))return Response.json({id:'user-a',email:'a@example.com',email_confirmed_at:'2026-01-01'});
   if(target.includes('/rest/v1/memberships'))return Response.json([{role}]);
   if(target.includes('/rest/v1/rpc/workspace_roster'))return Response.json(teamMembers);
+  if(target.includes('/rest/v1/training_plans'))return Response.json(plans);
   if(target.includes('/rest/v1/event_responses')){
    if(method==='DELETE')return Response.json(null);
    if(method==='GET')return Response.json([]);
@@ -30,7 +31,10 @@ function stub({role='trainer',eventGet=[],eventPost=[{id:eventId}],eventPatch=[{
    return Response.json(eventGet);
   }
   if(target.includes('/rest/v1/team_members')){
-   if(method==='GET')return Response.json(teamMembers);
+   if(method==='GET'){
+    // Die API fragt gezielt nach Coach-Zeilen; der Stub bildet das nach.
+    return Response.json(target.includes('role=eq.coach')?teamMembers.filter(m=>m.role==='coach'||m.team_role==='coach'):teamMembers);
+   }
    return Response.json(null);
   }
   if(target.includes('/rest/v1/teams')){
@@ -67,6 +71,44 @@ test('players cannot create, change or cancel events',async()=>withStub({role:'p
  const response=await eventsApi(req('/api/events',{action:'create',...base}));
  assert.equal(response.status,403);
  assert.ok(!calls.some(c=>c.method==='POST'&&c.url.includes('/rest/v1/events')));
+}));
+
+test('a repeated create with the same request id returns the existing event instead of duplicating it',async()=>{
+ const requestId='abababab-abab-4bab-8bab-abababababab';
+ const original=globalThis.fetch;
+ const inserts=[];
+ let stored=null;
+ globalThis.fetch=async(url,init={})=>{
+  const target=String(url),method=init.method||'GET';
+  if(target.includes('/auth/v1/user'))return Response.json({id:'user-a',email:'a@example.com',email_confirmed_at:'2026-01-01'});
+  if(target.includes('/rest/v1/memberships'))return Response.json([{role:'trainer'}]);
+  if(target.includes('/rest/v1/team_members'))return Response.json([{team_id:teamId,role:'coach'}]);
+  if(target.includes('/rest/v1/events')&&method==='POST'){
+   const row=JSON.parse(init.body);inserts.push(row);
+   // Die Datenbank ignoriert eine doppelte Kennung: leere Antwort beim zweiten Mal.
+   if(stored)return Response.json([]);
+   stored={id:'event-1'};return Response.json([stored]);
+  }
+  if(target.includes('/rest/v1/events')&&method==='GET'){
+   return Response.json(stored?[stored]:[]);
+  }
+  return Response.json([]);
+ };
+ try{
+  const first=await eventsApi(req('/api/events',{action:'create',...base,requestId}));
+  const second=await eventsApi(req('/api/events',{action:'create',...base,requestId}));
+  assert.equal(first.status,200);assert.equal(second.status,200);
+  assert.deepEqual(await first.json(),{event:{id:'event-1'}});
+  assert.deepEqual(await second.json(),{event:{id:'event-1'}});
+  assert.equal(inserts.length,2);
+  assert.ok(inserts.every(i=>i.client_request_id===requestId));
+ }finally{globalThis.fetch=original}
+});
+
+test('a malformed request id never reaches the database',async()=>withStub({role:'trainer'},async calls=>{
+ const response=await eventsApi(req('/api/events',{action:'create',...base,requestId:'nicht-gültig'}));
+ assert.equal(response.status,400);
+ assert.ok(!calls.some(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/events')));
 }));
 
 test('a foreign origin is rejected before any event write',async()=>withStub({role:'trainer'},async calls=>{
@@ -129,6 +171,86 @@ test('team management is closed to players and scoped to the session workspace',
   const write=calls.find(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/teams'));
   assert.equal(write.body.workspace_id,ws);
   assert.equal(write.body.created_by,'user-a');
+  // Wer eine Mannschaft anlegt, wird ihr Trainer.
+  const membership=calls.find(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/team_members'));
+  assert.equal(membership.body.user_id,'user-a');
+  assert.equal(membership.body.role,'coach');
+ });
+});
+
+test('only a club administrator assigns a coach to a team',async()=>{
+ const memberId='55555555-5555-4555-8555-555555555555';
+ await withStub({role:'admin'},async calls=>{
+  assert.equal((await teamsApi(req('/api/teams',{action:'addMember',teamId,userId:memberId,role:'coach'}))).status,200);
+  const write=calls.find(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/team_members'));
+  assert.equal(write.body.role,'coach');
+ });
+ await withStub({role:'trainer'},async calls=>{
+  const response=await teamsApi(req('/api/teams',{action:'addMember',teamId,userId:memberId,role:'coach'}));
+  assert.equal(response.status,403);
+  assert.ok(!calls.some(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/team_members')));
+ });
+ await withStub({role:'trainer'},async calls=>{
+  assert.equal((await teamsApi(req('/api/teams',{action:'addMember',teamId,userId:memberId,role:'player'}))).status,200);
+  const write=calls.find(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/team_members'));
+  assert.equal(write.body.role,'player');
+ });
+});
+
+test('a trainer may manage only events of teams they coach',async()=>{
+ const event={id:eventId,workspace_id:ws,team_id:teamId,created_by:'coach',kind:'training',title:'Training',starts_at:'2099-01-01T18:00:00Z',ends_at:null,meet_at:null,location:'',notes:'',response_deadline:null,cancelled_at:null,created_at:'2099-01-01T00:00:00Z',updated_at:'2099-01-01T00:00:00Z'};
+ await withStub({role:'trainer',eventGet:[event],teamMembers:[{team_id:teamId,user_id:'user-a',name:'Alex',email:'a@example.com',team_role:'coach'},{team_id:teamId,user_id:'user-b',name:'Bea',email:null,team_role:'player'}],teamGet:[{id:teamId,name:'U13'}]},async()=>{
+  const data=await (await eventsApi(req('/api/events',undefined,{method:'GET'}))).json();
+  assert.equal(data.canManage,true);
+  assert.equal(data.events[0].canManage,true);
+ });
+ await withStub({role:'trainer',eventGet:[event],teamMembers:[{team_id:teamId,user_id:'user-b',name:'Bea',email:null,team_role:'player'}],teamGet:[{id:teamId,name:'U13'}]},async()=>{
+  const data=await (await eventsApi(req('/api/events',undefined,{method:'GET'}))).json();
+  assert.equal(data.canManage,false);
+  assert.equal(data.events[0].canManage,false);
+ });
+});
+
+test('a coach links an own plan to an event and only the owner sees it',async()=>{
+ const planId='99999999-9999-4999-8999-999999999999';
+ await withStub({role:'trainer',plans:[{id:planId}]},async calls=>{
+  const response=await eventsApi(req('/api/events',{action:'create',...base,trainingPlanId:planId}));
+  assert.equal(response.status,200);
+  const write=calls.find(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/events'));
+  assert.equal(write.body.training_plan_id,planId);
+ });
+ // Ein fremder Plan gehört nicht zum Aufrufer: Die Sichtbarkeitsabfrage liefert ihn nicht.
+ await withStub({role:'trainer',plans:[]},async calls=>{
+  const response=await eventsApi(req('/api/events',{action:'create',...base,trainingPlanId:planId}));
+  assert.equal(response.status,400);
+  assert.ok(!calls.some(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/events')));
+ });
+});
+
+test('an update without the plan field keeps the existing link',async()=>withStub({role:'trainer'},async calls=>{
+ await eventsApi(req('/api/events',{action:'update',id:eventId,...base}));
+ const write=calls.find(c=>c.method==='PATCH'&&c.url.includes('/rest/v1/events'));
+ assert.equal(Object.hasOwn(write.body,'training_plan_id'),false);
+}));
+
+test('an update can remove the plan link explicitly',async()=>withStub({role:'trainer'},async calls=>{
+ await eventsApi(req('/api/events',{action:'update',id:eventId,...base,trainingPlanId:null}));
+ const write=calls.find(c=>c.method==='PATCH'&&c.url.includes('/rest/v1/events'));
+ assert.equal(write.body.training_plan_id,null);
+}));
+
+test('the list shows a linked plan only to its owner',async()=>{
+ const planId='99999999-9999-4999-8999-999999999999';
+ const event={id:eventId,workspace_id:ws,team_id:teamId,created_by:'coach',kind:'training',title:'Training',starts_at:'2099-01-01T18:00:00Z',ends_at:null,meet_at:null,location:'',notes:'',response_deadline:null,cancelled_at:null,created_at:'2099-01-01T00:00:00Z',updated_at:'2099-01-01T00:00:00Z',training_plan_id:planId};
+ const members=[{team_id:teamId,user_id:'user-a',name:'Alex',email:'a@example.com',team_role:'coach'}];
+ await withStub({role:'trainer',eventGet:[event],teamMembers:members,teamGet:[{id:teamId,name:'U13'}],plans:[{id:planId,payload:{plan:{title:'Passspiel'}}}]},async()=>{
+  const data=await (await eventsApi(req('/api/events',undefined,{method:'GET'}))).json();
+  assert.deepEqual(data.events[0].myTrainingPlan,{id:planId,title:'Passspiel'});
+ });
+ // Der Spieler sieht denselben Termin, aber keinen Plan.
+ await withStub({role:'player',eventGet:[event],teamMembers:[{team_id:teamId,user_id:'user-a',name:'Alex',email:null,team_role:'player'}],teamGet:[{id:teamId,name:'U13'}],plans:[]},async()=>{
+  const data=await (await eventsApi(req('/api/events',undefined,{method:'GET'}))).json();
+  assert.equal(data.events[0].myTrainingPlan,null);
  });
 });
 

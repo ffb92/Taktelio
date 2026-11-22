@@ -10,7 +10,7 @@ import {NativeSelect} from '@/components/ui/native-select';
 import {Dialog,DialogContent,DialogDescription,DialogFooter,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {cn} from '@/lib/utils';
 import {EVENT_KIND_LABELS,RESPONSE_LABELS} from '../../shared/events.mjs';
-import {CalendarDays,CalendarPlus,Check,Clock3,HelpCircle,LoaderCircle,MapPin,Pencil,Trash2,Users,X,Ban} from 'lucide-react';
+import {CalendarDays,CalendarPlus,Check,Clock3,HelpCircle,LoaderCircle,MapPin,Pencil,Trash2,Users,X,Ban,ClipboardList} from 'lucide-react';
 
 const dateFmt=new Intl.DateTimeFormat('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
 const dayFmt=new Intl.DateTimeFormat('de-DE',{day:'2-digit'});
@@ -47,7 +47,7 @@ function ResponseButtons({event,onRespond,busy,compact=false}){
  </div>;
 }
 
-function EventForm({workspaceId,teams,event,onSaved,onClose}){
+function EventForm({workspaceId,teams,event,plans,onSaved,onClose}){
  const editing=!!event;
  const [form,setForm]=useState(()=>({
   teamId:event?.teamId||teams[0]?.id||'',
@@ -59,14 +59,20 @@ function EventForm({workspaceId,teams,event,onSaved,onClose}){
   responseDeadline:localInput(event?.responseDeadline),
   location:event?.location||'',
   notes:event?.notes||'',
+  trainingPlanId:event?.myTrainingPlan?.id||'',
  }));
  const [busy,setBusy]=useState(false),[message,setMessage]=useState('');
+ // Eine Kennung je Formularsitzung: Ein Wiederholungsversuch nach einem Fehler
+ // legt keinen zweiten Termin an, sondern setzt dieselbe Anfrage fort.
+ const [requestId]=useState(()=>crypto.randomUUID());
  const field=(key,value)=>setForm(old=>({...old,[key]:value}));
  async function submit(e){
   e.preventDefault();setBusy(true);setMessage('');
   try{
    await apiFetch('/api/events',{workspaceId,body:{
-    action:editing?'update':'create',...(editing?{id:event.id}:{}),
+    action:editing?'update':'create',...(editing?{id:event.id}:{}),...(editing?{}:{requestId}),
+    // Der eigene Planbezug ist optional; eine leere Auswahl entfernt ihn gezielt.
+    trainingPlanId:form.trainingPlanId||null,
     teamId:form.teamId,kind:form.kind,title:form.title,
     startsAt:isoFromLocal(form.startsAt),endsAt:isoFromLocal(form.endsAt)||null,
     meetAt:isoFromLocal(form.meetAt)||null,responseDeadline:isoFromLocal(form.responseDeadline)||null,
@@ -94,6 +100,14 @@ function EventForm({workspaceId,teams,event,onSaved,onClose}){
      <div><Label htmlFor="event-deadline" className="mb-1.5">Rückmeldung bis (optional)</Label><Input id="event-deadline" type="datetime-local" value={form.responseDeadline} onChange={e=>field('responseDeadline',e.target.value)}/><p className="mt-1 text-xs text-muted-foreground">Ohne Angabe bis zum Beginn.</p></div>
     </div>
     <div><Label htmlFor="event-location" className="mb-1.5">Ort</Label><Input id="event-location" maxLength={200} placeholder="Zum Beispiel Sportplatz Nord" value={form.location} onChange={e=>field('location',e.target.value)}/></div>
+    <div>
+     <Label htmlFor="event-plan" className="mb-1.5">Eigene Einheit <span className="font-normal text-muted-foreground">(optional)</span></Label>
+     <NativeSelect id="event-plan" value={form.trainingPlanId} onChange={e=>field('trainingPlanId',e.target.value)}>
+      <option value="">Keine Einheit verknüpfen</option>
+      {plans.map(plan=><option key={plan.id} value={plan.id}>{plan.title}</option>)}
+     </NativeSelect>
+     <p className="mt-1 text-xs text-muted-foreground">Nur du siehst diese Verknüpfung. Mitspieler sehen den Plan nicht.</p>
+    </div>
     <div><Label htmlFor="event-notes" className="mb-1.5">Hinweise</Label><Textarea id="event-notes" rows={3} maxLength={2000} placeholder="Treffpunkt, Ausrüstung oder organisatorische Hinweise" value={form.notes} onChange={e=>field('notes',e.target.value)}/></div>
     {message&&<p role="status" className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">{message}</p>}
     <DialogFooter>
@@ -105,7 +119,7 @@ function EventForm({workspaceId,teams,event,onSaved,onClose}){
  </Dialog>;
 }
 
-function EventDetail({workspaceId,event,onChanged,onEdit,onClose}){
+function EventDetail({workspaceId,event,onChanged,onEdit,onOpenPlan,onClose}){
  const [note,setNote]=useState(event.myResponse?.note||''),[busy,setBusy]=useState(''),[message,setMessage]=useState('');
  async function respond(status){
   setBusy(status);setMessage('');
@@ -114,7 +128,9 @@ function EventDetail({workspaceId,event,onChanged,onEdit,onClose}){
  }
  async function manage(action,name){
   setBusy(action);setMessage('');
-  try{await apiFetch('/api/events',{workspaceId,body:{action,...(action==='delete'?{}:{id:event.id}),...(action==='cancel'?{cancelled:!event.cancelledAt}:{})}});onChanged(name)}
+  // Auch das Löschen braucht die Termin-ID; ohne sie kann der Server den Termin
+  // nicht zuordnen und lehnt die Anfrage ab.
+  try{await apiFetch('/api/events',{workspaceId,body:{action,id:event.id,...(action==='cancel'?{cancelled:!event.cancelledAt}:{})}});onChanged(name)}
   catch(error){setMessage(error.message)}finally{setBusy('')}
  }
  const responded=new Map((event.responses||[]).map(r=>[r.userId,r.status]));
@@ -143,13 +159,18 @@ function EventDetail({workspaceId,event,onChanged,onEdit,onClose}){
 
    {event.notes&&<p className="whitespace-pre-line rounded-xl bg-muted/60 px-4 py-3 text-sm leading-relaxed">{event.notes}</p>}
 
-   {!event.cancelledAt&&(event.myTeamRole?<div className="space-y-2 rounded-xl border px-4 py-4">
+   {event.myTrainingPlan&&<div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+    <span className="min-w-0 text-sm"><span className="block text-xs uppercase tracking-[0.14em] text-muted-foreground">Deine Einheit</span><span className="block truncate font-medium">{event.myTrainingPlan.title}</span></span>
+    <Button variant="outline" className="min-h-11 shrink-0" onClick={()=>onOpenPlan(event.myTrainingPlan.id)}><ClipboardList/>Plan öffnen</Button>
+   </div>}
+
+   {!event.cancelledAt&&(event.myTeamRole==='player'?<div className="space-y-2 rounded-xl border px-4 py-4">
     <p className="text-sm font-medium">Deine Rückmeldung</p>
     <ResponseButtons event={event} busy={!!busy} onRespond={(_,status)=>respond(status)}/>
     <Label htmlFor="event-response-note" className="sr-only">Hinweis zur Rückmeldung</Label>
     <Input id="event-response-note" maxLength={500} value={note} onChange={e=>setNote(e.target.value)} placeholder="Optionaler Hinweis, zum Beispiel spätere Ankunft"/>
     <p className="text-xs text-muted-foreground">{Date.now()>=deadline?'Die Rückmeldefrist ist abgelaufen.':event.responseDeadline?`Rückmeldung bis ${dateFmt.format(new Date(event.responseDeadline))} um ${timeFmt.format(new Date(event.responseDeadline))} Uhr.`:'Rückmeldung bis zum Beginn möglich.'} Der Hinweis wird mit deiner Rückmeldung gespeichert.</p>
-   </div>:<p className="rounded-xl border bg-muted/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground">Du gehörst nicht zur Mannschaft {event.teamName}. Nur Teilnehmende können zu- oder absagen; die Antworten siehst du unten.</p>)}
+   </div>:(event.myTeamRole==='coach'?<p className="rounded-xl border bg-muted/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground">Du betreust {event.teamName}. Die Rückmeldungen der Spieler siehst du unten.</p>:<p className="rounded-xl border bg-muted/40 px-4 py-3 text-sm leading-relaxed text-muted-foreground">Du gehörst nicht zur Mannschaft {event.teamName}. Nur Teilnehmende können zu- oder absagen; die Antworten siehst du unten.</p>))}
 
    <div>
     <div className="flex items-center justify-between gap-2">
@@ -176,8 +197,8 @@ function EventDetail({workspaceId,event,onChanged,onEdit,onClose}){
  </Dialog>;
 }
 
-export default function Events({workspaceId}){
- const [events,setEvents]=useState([]),[teams,setTeams]=useState([]),[loading,setLoading]=useState(true),[message,setMessage]=useState(''),[filter,setFilter]=useState('all'),[selectedId,setSelectedId]=useState(null),[formOpen,setFormOpen]=useState(false),[editing,setEditing]=useState(null),[canManage,setCanManage]=useState(false);
+export default function Events({workspaceId,onOpenPlan}){
+ const [events,setEvents]=useState([]),[teams,setTeams]=useState([]),[plans,setPlans]=useState([]),[loading,setLoading]=useState(true),[message,setMessage]=useState(''),[filter,setFilter]=useState('all'),[selectedId,setSelectedId]=useState(null),[formOpen,setFormOpen]=useState(false),[editing,setEditing]=useState(null),[canManage,setCanManage]=useState(false);
  const load=useCallback(async(signal)=>{
   const [eventData,teamData]=await Promise.all([
    apiFetch('/api/events',{workspaceId,signal}),
@@ -186,6 +207,9 @@ export default function Events({workspaceId}){
   setEvents(eventData.events);setCanManage(eventData.canManage);setTeams(teamData.teams);
  },[workspaceId]);
  useEffect(()=>{const controller=new AbortController();setLoading(true);load(controller.signal).catch(e=>{if(e.name!=='AbortError')setMessage(e.message)}).finally(()=>{if(!controller.signal.aborted)setLoading(false)});return()=>controller.abort()},[load]);
+ // Eigene gespeicherte Einheiten für den optionalen Planbezug. Die Liste ist
+ // durch die Datenbankregeln auf den eigenen Bestand begrenzt.
+ useEffect(()=>{const controller=new AbortController();apiFetch('/api/storage',{workspaceId,signal:controller.signal}).then(d=>setPlans((d.records||[]).map(r=>({id:r.id,title:typeof r.payload?.plan?.title==='string'?r.payload.plan.title:'Eigene Einheit'})))).catch(()=>{});return()=>controller.abort()},[workspaceId]);
 
  const visibleTeams=useMemo(()=>canManage?teams:teams.filter(t=>t.myRole),[teams,canManage]);
  const filtered=useMemo(()=>filter==='all'?events:events.filter(e=>e.teamId===filter),[events,filter]);
@@ -260,7 +284,7 @@ export default function Events({workspaceId}){
       </div>
      </div>
      <div className="mt-3 flex flex-wrap items-center gap-2">
-      {event.cancelledAt?<p className="text-xs text-muted-foreground">Dieser Termin wurde abgesagt.</p>:event.myTeamRole?<ResponseButtons event={event} onRespond={respond}/>:<p className="text-xs text-muted-foreground">Nur Teilnehmende der Mannschaft können zu- oder absagen.</p>}
+      {event.cancelledAt?<p className="text-xs text-muted-foreground">Dieser Termin wurde abgesagt.</p>:event.myTeamRole==='player'?<ResponseButtons event={event} onRespond={respond}/>:event.myTeamRole==='coach'?<p className="text-xs text-muted-foreground">Du betreust diese Mannschaft und siehst alle Antworten.</p>:<p className="text-xs text-muted-foreground">Nur Teilnehmende der Mannschaft können zu- oder absagen.</p>}
       <span className="ml-auto text-xs text-muted-foreground">{event.summary.accepted} zu · {event.summary.open} offen</span>
      </div>
     </div>
@@ -283,7 +307,7 @@ export default function Events({workspaceId}){
    </div>
   </details>}
 
-  {selected&&<EventDetail key={selected.id} workspaceId={workspaceId} event={selected} onChanged={refresh} onEdit={()=>openEdit(selected)} onClose={()=>setSelectedId(null)}/>}
-  {formOpen&&<EventForm workspaceId={workspaceId} teams={teams} event={editing} onSaved={async()=>{setFormOpen(false);setEditing(null);await load()}} onClose={()=>{setFormOpen(false);setEditing(null)}}/>}
+  {selected&&<EventDetail key={selected.id} workspaceId={workspaceId} event={selected} onChanged={refresh} onEdit={()=>openEdit(selected)} onOpenPlan={id=>{setSelectedId(null);onOpenPlan?.(id)}} onClose={()=>setSelectedId(null)}/>}
+  {formOpen&&<EventForm workspaceId={workspaceId} teams={teams} event={editing} plans={plans} onSaved={async()=>{setFormOpen(false);setEditing(null);await load()}} onClose={()=>{setFormOpen(false);setEditing(null)}}/>}
  </section>;
 }

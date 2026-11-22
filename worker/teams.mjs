@@ -44,6 +44,9 @@ export async function teamsApi(request){
    const name=validTeamName(b.name);
    if(!name)return json({error:'Mannschaftsname: 2 bis 80 Zeichen.'},400);
    const rows=await cloudQuery(ctx,'teams','POST',{workspace_id:ctx.workspaceId,name,created_by:ctx.user.id});
+   // Wer eine Mannschaft anlegt, betreut sie auch. Administratoren sehen ohnehin
+   // den ganzen Verein und brauchen keinen Eintrag.
+   if(ctx.role==='trainer')await cloudQuery(ctx,'team_members','POST',{team_id:rows[0].id,user_id:ctx.user.id,role:'coach'});
    return json({team:pickTeam(rows[0])});
   }
   if(b.action==='rename'){
@@ -62,7 +65,11 @@ export async function teamsApi(request){
   if(b.action==='addMember'||b.action==='removeMember'){
    if(!isUuid(b.teamId)||!isUuid(b.userId))return json({error:'Bitte Mannschaft und Person angeben.'},400);
    if(b.action==='addMember'){
-    await cloudQuery(ctx,'team_members','POST',{team_id:b.teamId,user_id:b.userId,role:'player'});
+    const role=b.role==='coach'?'coach':'player';
+    // Trainer der Mannschaft fügen Spieler hinzu; Trainer einer Mannschaft
+    // ernennt nur ein Vereinsadministrator.
+    if(role==='coach'&&!['owner','admin'].includes(ctx.role))return json({error:'Nur Vereinsadministratoren können Trainer einer Mannschaft zuordnen.'},403);
+    await cloudQuery(ctx,'team_members','POST',{team_id:b.teamId,user_id:b.userId,role});
    }else{
     await cloudQuery(ctx,'team_members?team_id=eq.'+b.teamId+'&user_id=eq.'+b.userId,'DELETE');
    }

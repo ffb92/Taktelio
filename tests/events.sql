@@ -5,7 +5,8 @@ insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
 ('30000000-0000-4000-8000-000000000003','player1@example.invalid',now(),'{"taktelio_profile":{"firstName":"Pia","lastName":"Player"}}'),
 ('30000000-0000-4000-8000-000000000004','player2@example.invalid',now(),'{}'),
 ('30000000-0000-4000-8000-000000000005','outsider@example.invalid',now(),'{}'),
-('30000000-0000-4000-8000-000000000006','owner2@example.invalid',now(),'{}');
+('30000000-0000-4000-8000-000000000006','owner2@example.invalid',now(),'{}'),
+('30000000-0000-4000-8000-000000000007','coach2@example.invalid',now(),'{}');
 
 -- Verein 1: Inhaber legt Mannschaft und Einladungen an.
 select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
@@ -48,7 +49,23 @@ select public.accept_club_invitation(current_setting('test.p2_invite'));
 select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 select public.accept_club_invitation(current_setting('test.coach_invite'));
 
+-- Der Inhaber ordnet den Trainer seiner Mannschaft zu und legt eine zweite
+-- Mannschaft für einen anderen Trainer an.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ declare t2 uuid; begin
+ insert into public.team_members(team_id,user_id,role) values(current_setting('test.team')::uuid,'30000000-0000-4000-8000-000000000002','coach');
+ insert into public.teams(workspace_id,name,created_by) values(current_setting('test.club')::uuid,'U15','30000000-0000-4000-8000-000000000001') returning id into t2;
+ perform set_config('test.team_other',t2::text,true);
+end $$;
+select set_config('test.coach2_invite',public.create_club_invitation(current_setting('test.club')::uuid,'coach2@example.invalid','trainer',null)->>'token',true);
+
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000007","role":"authenticated"}',true);
+select public.accept_club_invitation(current_setting('test.coach2_invite'));
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+insert into public.team_members(team_id,user_id,role) values(current_setting('test.team_other')::uuid,'30000000-0000-4000-8000-000000000007','coach');
+
 -- Trainer legt Termine an und darf Spieler einladen, aber keine Trainer.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 do $$ declare eid uuid; begin
  insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,location)
  values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,'30000000-0000-4000-8000-000000000002','training','Abschlusstraining',now()+interval '2 days','Sportplatz') returning id into eid;
@@ -127,6 +144,125 @@ do $$ begin
  if not exists(select 1 from public.event_responses where event_id=current_setting('test.event_open')::uuid and user_id=auth.uid() and status='maybe') then raise exception 'TEST: response upsert did not persist';end if;
 end $$;
 
+-- Mannschaftsgrenze: der Trainer einer anderen Mannschaft desselben Vereins
+-- sieht und ändert keine Termine der ersten Mannschaft und keine fremden Namen.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000007","role":"authenticated"}',true);
+do $$ declare n int; changed int; begin
+ select count(*) into n from public.events;
+ if n<>0 then raise exception 'TEST: other coach saw events %',n;end if;
+ begin insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at)
+  values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,auth.uid(),'training','Fremd',now()+interval '5 days');
+  raise exception 'TEST: other coach created event';
+ exception when others then if SQLERRM like 'TEST:%' then raise;end if;end;
+ update public.events set title='Fremd' where id=current_setting('test.event')::uuid;get diagnostics changed=row_count;
+ if changed<>0 then raise exception 'TEST: other coach changed event';end if;
+ select count(*) into n from public.workspace_roster(current_setting('test.club')::uuid) where team_id=current_setting('test.team')::uuid;
+ if n<>0 then raise exception 'TEST: other coach saw foreign roster %',n;end if;
+end $$;
+
+-- Der Trainer der ersten Mannschaft darf ebenso wenig in die zweite Mannschaft
+-- schreiben und sieht dort keine Namen.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ declare n int; begin
+ begin insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at)
+  values(current_setting('test.club')::uuid,current_setting('test.team_other')::uuid,auth.uid(),'training','Fremd',now()+interval '5 days');
+  raise exception 'TEST: coach created event for foreign team';
+ exception when others then if SQLERRM like 'TEST:%' then raise;end if;end;
+ select count(*) into n from public.workspace_roster(current_setting('test.club')::uuid) where team_id=current_setting('test.team_other')::uuid;
+ if n<>0 then raise exception 'TEST: coach saw foreign roster %',n;end if;
+ select count(*) into n from public.workspace_roster(current_setting('test.club')::uuid) where team_id=current_setting('test.team')::uuid;
+ if n<2 then raise exception 'TEST: coach saw own roster only %',n;end if;
+end $$;
+
+-- Spieler sehen nur Namen ihrer Mannschaft und keine E-Mail-Adressen.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+do $$ declare n int; mails int; begin
+ select count(*) into n from public.workspace_roster(current_setting('test.club')::uuid) where team_id<>current_setting('test.team')::uuid;
+ if n<>0 then raise exception 'TEST: player saw foreign roster %',n;end if;
+ select count(*) into mails from public.workspace_roster(current_setting('test.club')::uuid) where email is not null;
+ if mails<>0 then raise exception 'TEST: player saw email';end if;
+end $$;
+
+-- Der Inhaber behält die vereinsweite Sicht.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ declare n int; begin
+ select count(*) into n from public.events;
+ if n<2 then raise exception 'TEST: owner saw only % events',n;end if;
+end $$;
+
+-- Idempotenz der Neuanlage: dieselbe Anfragekennung erzeugt höchstens einen
+-- Termin, auch wenn der zweite Versuch den Schreibvorgang wiederholt.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ declare n int; begin
+ insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,client_request_id)
+ values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,auth.uid(),'training','Idempotent',now()+interval '6 days','abababab-abab-4bab-8bab-abababababab')
+ on conflict(workspace_id,client_request_id) where client_request_id is not null do nothing;
+ insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,client_request_id)
+ values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,auth.uid(),'training','Idempotent',now()+interval '6 days','abababab-abab-4bab-8bab-abababababab')
+ on conflict(workspace_id,client_request_id) where client_request_id is not null do nothing;
+ select count(*) into n from public.events where client_request_id='abababab-abab-4bab-8bab-abababababab';
+ if n<>1 then raise exception 'TEST: duplicate event %',n;end if;
+end $$;
+
+-- Wiederholte Rückmeldung desselben Spielers bleibt eine Zeile.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+do $$ declare n int; begin
+ insert into public.event_responses(event_id,user_id,status,note,updated_at)
+ values(current_setting('test.event_open')::uuid,auth.uid(),'accepted','Erneut',now())
+ on conflict(event_id,user_id) do update set status=excluded.status,note=excluded.note,updated_at=excluded.updated_at;
+ insert into public.event_responses(event_id,user_id,status,note,updated_at)
+ values(current_setting('test.event_open')::uuid,auth.uid(),'declined','Nochmals',now())
+ on conflict(event_id,user_id) do update set status=excluded.status,note=excluded.note,updated_at=excluded.updated_at;
+ select count(*) into n from public.event_responses where event_id=current_setting('test.event_open')::uuid and user_id=auth.uid();
+ if n<>1 then raise exception 'TEST: repeated response rows %',n;end if;
+ if not exists(select 1 from public.event_responses where event_id=current_setting('test.event_open')::uuid and user_id=auth.uid() and status='declined') then raise exception 'TEST: latest response missing';end if;
+end $$;
+
+-- Ein Trainer der Mannschaft verwaltet Termine, antwortet aber nicht für sich:
+-- Rückmeldungen gehören Spielern.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ begin
+ begin insert into public.event_responses(event_id,user_id,status) values(current_setting('test.event_open')::uuid,auth.uid(),'accepted');
+  raise exception 'TEST: coach answered as player';
+ exception when others then if SQLERRM like 'TEST:%' then raise;end if;end;
+end $$;
+
+-- Persönlicher Planbezug: eigener Plan ist erlaubt, fremder Plan nicht, und der
+-- Termin überlebt das Löschen der Einheit.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ declare own_plan uuid; begin
+ insert into public.training_plans(workspace_id,created_by,payload)
+ values(current_setting('test.club')::uuid,auth.uid(),'{"plan":{"title":"Coach-Plan","blocks":[]}}') returning id into own_plan;
+ perform set_config('test.own_plan',own_plan::text,true);
+ -- Dieselbe Einheit an zwei Terminen ist erlaubt.
+ insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,training_plan_id)
+ values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,auth.uid(),'training','Mit Plan',now()+interval '7 days',own_plan);
+ insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,training_plan_id)
+ values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,auth.uid(),'training','Wiederholung',now()+interval '14 days',own_plan);
+end $$;
+
+-- Ein anderer Trainer desselben Vereins darf den Plan weder sehen noch verknüpfen.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000007","role":"authenticated"}',true);
+do $$ begin
+ if exists(select 1 from public.training_plans where id=current_setting('test.own_plan')::uuid) then raise exception 'TEST: foreign plan visible';end if;
+ begin insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,training_plan_id)
+  values(current_setting('test.club')::uuid,current_setting('test.team_other')::uuid,auth.uid(),'training','Fremdplan',now()+interval '7 days',current_setting('test.own_plan')::uuid);
+  raise exception 'TEST: foreign plan linked';
+ exception when others then if SQLERRM like 'TEST:%' then raise;end if;end;
+end $$;
+
+-- Der Eigentümer sieht die Verknüpfung; der Löschvorgang leert sie und der
+-- Termin bleibt bestehen.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ declare changed int; remaining int; begin
+ if not exists(select 1 from public.events where training_plan_id=current_setting('test.own_plan')::uuid) then raise exception 'TEST: own plan link missing';end if;
+ delete from public.training_plans where id=current_setting('test.own_plan')::uuid;
+ get diagnostics changed=row_count;
+ if changed<>1 then raise exception 'TEST: plan not deletable';end if;
+ select count(*) into remaining from public.events where title in('Mit Plan','Wiederholung') and training_plan_id is null;
+ if remaining<>2 then raise exception 'TEST: events did not survive plan deletion %',remaining;end if;
+end $$;
+
 reset role;
 rollback;
-select 'Teams, player invitations, event visibility, attendance responses and roster privacy passed; transaction rolled back' as result;
+select 'Teams, player invitations, event visibility, attendance responses, roster privacy and team coach scope passed; transaction rolled back' as result;

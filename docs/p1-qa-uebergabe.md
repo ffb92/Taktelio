@@ -13,11 +13,13 @@ Es wurden nur Abweichungen geändert, die durch einen Test reproduzierbar waren.
 | Punkt | Stand |
 | --- | --- |
 | Branch | `feature/account-menu` |
-| HEAD | `e72c56f` (Konto-Menü mit getrennten Seiten für Profil, Verein und Mannschaft) |
-| Geändert | `src/components/Training.jsx` (+4/−2) |
-| Geändert | `tests/react-app.test.mjs` (+30) |
-| Neu | `tests/training-journey.test.mjs` |
-| Unversioniert, unverändert | Planungsdokumente von Astra: `docs/entwicklungsplan-entwurf.md`, `docs/pilot-design.md`, `docs/pilot-qa.md`, `docs/pilot-qa-ergebnis.md`, `docs/produktfragen.md`, `docs/roadmap.md` |
+| HEAD | `253db20` (Planungsunterlagen für den Trainingspilot ergänzt) |
+| Commit P1 | `033832e` P1: Trainingsablauf geprüft, gespeicherte Einheit bleibt eine Zeile |
+| Commit Planung | `253db20` Planungsunterlagen für den Trainingspilot ergänzt |
+| Ausgangsstand | `e72c56f` (Konto-Menü mit getrennten Seiten für Profil, Verein und Mannschaft) |
+| Arbeitsbaum | sauber, keine lokalen Änderungen |
+| Codeänderung | `src/components/Training.jsx` (+4/−2) |
+| Tests | `tests/training-journey.test.mjs` (neu), `tests/react-app.test.mjs` (+30) |
 
 ## Umgebung und Prüfkommandos
 

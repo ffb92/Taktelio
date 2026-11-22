@@ -23,7 +23,7 @@ function mockBackend(state){
   if(path==='/api/status'){state.statusCalls++;return Response.json({ready:true,message:'8 von 10 KI-Generierungen verwendet'})}
   if(path==='/api/exercises')return Response.json({exercises:[]});
   if(path==='/api/plan'){const body=JSON.parse(options.body);state.planCalls.push(body);if(state.failNext){state.failNext=false;return Response.json({error:'Vorübergehend nicht erreichbar'},{status:503})}if(state.failNetwork){state.failNetwork=false;throw new TypeError('Failed to fetch')}return Response.json({plan,mode:body.mode,source:'ai'})}
-  if(path==='/api/storage')return Response.json({records:[],nextOffset:null});
+  if(path==='/api/storage')return Response.json({records:state.listing,nextOffset:null});
   throw Error('Unexpected request: '+path);
  };
  return state;
@@ -222,5 +222,35 @@ test('required fields and the optional wish are distinguishable',async()=>{
   assert.equal(wishes.required,false);
   assert.match(wishes.labels[0].textContent,/optional/);
   await screen.findByText(/Alle Angaben außer „Weitere Wünsche“ sind Pflichtfelder\./);
+ }finally{cleanup();globalThis.fetch=originalFetch;sessionStorage.clear();localStorage.clear()}
+});
+
+test('a plan opened from an event appears in the planner',async()=>{
+ const state=mockBackend(fresh());
+ const id='99999999-9999-4999-8999-999999999999';
+ state.listing=[{id,payload:{criteria:criteria,mode:'hybrid',plan},created_at:'2026-11-22T10:00:00.000Z',updated_at:'2026-11-22T10:00:00.000Z'}];
+ let opened=0;
+ try{
+  render(React.createElement(Training,{workspaceId,userId,openPlanId:id,onPlanOpened:()=>{opened++},onBusy:()=>{}}));
+  await screen.findByRole('heading',{name:'Plan A'});
+  await waitFor(()=>assert.equal(opened,1));
+  assert.equal(screen.getByLabelText('Minuten').value,'60');
+  // Ohne offene Absicht und ohne gespeicherten Entwurf bleibt der Planer leer.
+  cleanup();sessionStorage.clear();localStorage.clear();
+  render(React.createElement(Training,{workspaceId,userId,openPlanId:null,onPlanOpened:()=>{opened++},onBusy:()=>{}}));
+  await ready();
+  assert.equal(screen.queryByRole('heading',{name:'Plan A'}),null);
+  assert.equal(opened,1);
+ }finally{cleanup();globalThis.fetch=originalFetch;sessionStorage.clear();localStorage.clear()}
+});
+
+test('a plan deleted in the meantime is reported instead of crashing',async()=>{
+ const state=mockBackend(fresh());
+ state.listing=[];
+ let opened=0;
+ try{
+  render(React.createElement(Training,{workspaceId,userId,openPlanId:'99999999-9999-4999-8999-999999999999',onPlanOpened:()=>{opened++},onBusy:()=>{}}));
+  await screen.findByText('Diese Einheit ist nicht mehr vorhanden.');
+  await waitFor(()=>assert.equal(opened,1));
  }finally{cleanup();globalThis.fetch=originalFetch;sessionStorage.clear();localStorage.clear()}
 });

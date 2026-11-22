@@ -26,7 +26,7 @@ function AgeRuleHint({age,minutes}){
  return <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{rule.level}: {rule.gameFormat} · Ballgröße {rule.ballSize} · {rule.heading?`Kopfball ${rule.heading}`:'kein Kopfballtraining'}{target>0?` · mind. ${target} Min. Nettospielzeit`:''}.</p>;
 }
 
-export default function Training({workspaceId,userId,onBusy}){
+export default function Training({workspaceId,userId,openPlanId,onPlanOpened,onBusy}){
  // Beim Neuladen werden Entwurf und laufende Anfrage für dieses Konto und diesen
  // Verein wiederhergestellt; ein anderes Konto sieht sie nie.
  const [restored]=useState(()=>{
@@ -48,6 +48,23 @@ export default function Training({workspaceId,userId,onBusy}){
  useEffect(()=>{saveTrainingSession(userId,workspaceId,{draft:record,pending:pending.current})},[userId,workspaceId,record]);
  const field=(name,value)=>setCriteria(old=>({...old,[name]:value}));
  const load=input=>{const r=normalizeRecord(input);if(!r){setMessage('Diese Einheit ist unvollständig und kann nicht geöffnet werden.');return}setPrevious(record);setRecord(r);setCriteria(r.criteria);setMode(r.mode||'hybrid');setView('ai');setMessage('')};
+ // Öffnen aus einem Termin: Die Einheit wird über die gespeicherte Liste geladen.
+ // Die Liste enthält durch die Datenbankregeln nur eigene Einheiten.
+ useEffect(()=>{
+  if(!openPlanId)return;
+  let active=true;
+  (async()=>{
+   try{
+    const d=await apiFetch('/api/storage',{workspaceId});
+    const found=(d.records||[]).find(r=>r.id===openPlanId);
+    if(!active)return;
+    if(found)load({...found.payload,id:found.id});
+    else setMessage('Diese Einheit ist nicht mehr vorhanden.');
+   }catch(e){if(active)setMessage(e.message)}
+   finally{if(active)onPlanOpened?.()}
+  })();
+  return()=>{active=false};
+ },[openPlanId,workspaceId]);
  async function generate(adjust=false){
   if(flight.current||!form.current.reportValidity())return;
   if(adjust&&!change.trim())return setMessage('Beschreibe zuerst die gewünschte Änderung.');

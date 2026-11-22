@@ -25,6 +25,7 @@ export async function freshDatabaseSql(){
   'supabase/migrations/20261115150000_event_write_privileges.sql',
   'supabase/migrations/20261122170000_team_coach_scope.sql',
   'supabase/migrations/20261122180000_event_idempotency.sql',
+  'supabase/migrations/20261122190000_event_training_plan.sql',
  ];
  const fragments=await Promise.all(files.map(async file=>'-- '+file+'\n'+await readFile(new URL(file,root),'utf8')));
  const exercises=JSON.parse(await readFile(new URL('data/exercises.json',root),'utf8'));

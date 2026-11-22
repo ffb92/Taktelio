@@ -47,7 +47,7 @@ function ComingSoon({module}){
 }
 
 export default function App(){
-  const [user,setUser]=useState(null),[starting,setStarting]=useState(true),[loadingClubs,setLoadingClubs]=useState(false),[workspaces,setWorkspaces]=useState([]),[workspaceId,setWorkspaceId]=useState(null),[invite,setInvite]=useState(null),[page,setPage]=useState('training'),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[recovery,setRecovery]=useState(false);
+  const [user,setUser]=useState(null),[starting,setStarting]=useState(true),[loadingClubs,setLoadingClubs]=useState(false),[workspaces,setWorkspaces]=useState([]),[workspaceId,setWorkspaceId]=useState(null),[invite,setInvite]=useState(null),[page,setPage]=useState('training'),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[recovery,setRecovery]=useState(false),[openPlanId,setOpenPlanId]=useState(null);
   const reset=useCallback(()=>{setUser(null);setWorkspaces([]);setWorkspaceId(null);setBusy(false);setPage('training');setMessage('Deine Sitzung ist abgelaufen. Bitte erneut anmelden.')},[]);
   useEffect(()=>{let active=true;startSession().then(d=>{if(!active)return;setUser(d.user);setRecovery(d.recovery);setMessage(d.error||'');setInvite(storage.get('trainer-club-invite',true));setStarting(false)});window.addEventListener('taktelio:session-expired',reset);return()=>{active=false;window.removeEventListener('taktelio:session-expired',reset)}},[reset]);
   const choose=useCallback((list,preferred)=>{const remembered=storage.get('trainer-workspace-'+user.id);const selected=list.find(w=>w.id===(preferred||remembered))||list[0];setWorkspaces(list);setWorkspaceId(selected?.id||null);setPage(current=>selected?.role==='player'?(PLAYER_PAGES.includes(current)?current:'events'):(ALL_PAGES.includes(current)?current:'training'));if(selected)storage.set('trainer-workspace-'+user.id,selected.id)},[user?.id]);
@@ -81,7 +81,7 @@ export default function App(){
               ? <TeamsPage key={workspaceId} workspaceId={workspaceId}/>
               : null}
     {navigation&&['social','scouting'].includes(currentPage)&&<ComingSoon module={currentPage}/>}
-    {navigation&&currentPage==='events'&&<Events key={user.id+':'+workspaceId} workspaceId={workspaceId}/>}
-    {navigation&&role!=='player'&&<div hidden={currentPage!=='training'}><Training key={user.id+':'+workspaceId} userId={user.id} workspaceId={workspaceId} onBusy={setBusy}/></div>}
+    {navigation&&currentPage==='events'&&<Events key={user.id+':'+workspaceId} workspaceId={workspaceId} onOpenPlan={id=>{setOpenPlanId(id);setPage('training')}}/>}
+    {navigation&&role!=='player'&&<div hidden={currentPage!=='training'}><Training key={user.id+':'+workspaceId} userId={user.id} workspaceId={workspaceId} openPlanId={openPlanId} onPlanOpened={()=>setOpenPlanId(null)} onBusy={setBusy}/></div>}
   </AppShell>;
 }

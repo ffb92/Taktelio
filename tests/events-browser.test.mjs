@@ -16,11 +16,12 @@ const pad=n=>String(n).padStart(2,'0');
 const localInput=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const inDays=(days,hour=18)=>localInput(new Date(Date.now()+days*86400000)).slice(0,11)+pad(hour)+':00';
 
-function backend({role='trainer',events=[]}={}){
- const state={events:[...events],writes:[],responds:[],failNextWrite:false,role};
+function backend({role='trainer',events=[],plans=[]}={}){
+ const state={events:[...events],writes:[],responds:[],failNextWrite:false,role,plans};
  globalThis.fetch=async(path,options={})=>{
   const method=options.method||'GET';
   if(path.startsWith('/api/teams'))return Response.json({role:state.role,canManage:true,teams:[team]});
+  if(path.startsWith('/api/storage'))return Response.json({records:state.plans.map(p=>({id:p.id,payload:{plan:{title:p.title},criteria:{minutes:60},mode:'hybrid'}})),nextOffset:null});
   if(path.startsWith('/api/events/respond')){
    const body=JSON.parse(options.body);state.responds.push(body);
    const target=state.events.find(e=>e.id===body.eventId);
@@ -31,14 +32,15 @@ function backend({role='trainer',events=[]}={}){
    if(method==='GET')return Response.json({role:state.role,canManage:state.role!=='player',events:state.events});
    const body=JSON.parse(options.body);state.writes.push(body);
    if(state.failNextWrite){state.failNextWrite=false;return Response.json({error:'Speichern fehlgeschlagen.'},{status:503})}
+   const planOf=id=>state.plans.find(p=>p.id===id)||null;
    if(body.action==='create'){
     const id='eeeeeeee-eeee-4eee-8eee-'+String(state.events.length+1).padStart(12,'0');
-    state.events.push({id,teamId:body.teamId,teamName:'U13',kind:body.kind,title:body.title,startsAt:body.startsAt,endsAt:body.endsAt,meetAt:body.meetAt,location:body.location,notes:body.notes,responseDeadline:body.responseDeadline,cancelledAt:null,canManage:true,myUserId:'trainer-1',myTeamRole:'coach',myResponse:null,summary:{accepted:0,declined:0,maybe:0,open:2,total:2},roster:[{userId:'trainer-1',name:'Trainer',teamRole:'coach'},{userId:'p1',name:'Pia',teamRole:'player'},{userId:'p2',name:'Bea',teamRole:'player'}],responses:[]});
+    state.events.push({id,myTrainingPlan:planOf(body.trainingPlanId),teamId:body.teamId,teamName:'U13',kind:body.kind,title:body.title,startsAt:body.startsAt,endsAt:body.endsAt,meetAt:body.meetAt,location:body.location,notes:body.notes,responseDeadline:body.responseDeadline,cancelledAt:null,canManage:true,myUserId:'trainer-1',myTeamRole:'coach',myResponse:null,summary:{accepted:0,declined:0,maybe:0,open:2,total:2},roster:[{userId:'trainer-1',name:'Trainer',teamRole:'coach'},{userId:'p1',name:'Pia',teamRole:'player'},{userId:'p2',name:'Bea',teamRole:'player'}],responses:[]});
     return Response.json({event:{id},created:true},state.writes.filter(w=>w.requestId===body.requestId).length>1?{status:200}:{status:200});
    }
    const target=state.events.find(e=>e.id===body.id);
    if(!target)return Response.json({error:'Termin nicht gefunden.'},{status:404});
-   if(body.action==='update')Object.assign(target,{startsAt:body.startsAt,location:body.location,title:body.title,notes:body.notes,endsAt:body.endsAt,meetAt:body.meetAt,responseDeadline:body.responseDeadline,kind:body.kind});
+   if(body.action==='update')Object.assign(target,{myTrainingPlan:planOf(body.trainingPlanId),startsAt:body.startsAt,location:body.location,title:body.title,notes:body.notes,endsAt:body.endsAt,meetAt:body.meetAt,responseDeadline:body.responseDeadline,kind:body.kind});
    if(body.action==='cancel')target.cancelledAt=body.cancelled?new Date().toISOString():null;
    if(body.action==='delete')state.events=state.events.filter(e=>e.id!==body.id);
    return Response.json({ok:true,event:{id:target.id}});
@@ -227,5 +229,48 @@ test('P5: cancelling from the detail view marks the game and keeps it visible',a
   await mount();
   await screen.findByText('Spiel Montag');
   await screen.findByText('Abgesagt');
+ }finally{cleanup();globalThis.fetch=originalFetch}
+});
+
+test('P6: the coach links an own plan to an event and opens it from there',async()=>{
+ const plan={id:'99999999-9999-4999-8999-999999999999',title:'Passspiel Dienstag'};
+ const state=backend({plans:[plan]});
+ let opened=null;
+ try{
+  render(React.createElement(Events,{workspaceId,onOpenPlan:id=>{opened=id}}));
+  await screen.findByRole('heading',{name:'Termine und Anwesenheit'});
+  await waitFor(()=>{if(!screen.queryByRole('button',{name:'Termin anlegen'}))throw Error('loading')});
+  fireEvent.click(screen.getByRole('button',{name:'Termin anlegen'}));
+  const dialog=await screen.findByRole('dialog');
+  fireEvent.change(within(dialog).getByLabelText('Titel'),{target:{value:'Training mit Plan'}});
+  fireEvent.change(within(dialog).getByLabelText(/Eigene Einheit/),{target:{value:plan.id}});
+  fireEvent.click(within(dialog).getByRole('button',{name:'Termin anlegen'}));
+  await screen.findByText('Training mit Plan');
+  assert.equal(state.writes.at(-1).trainingPlanId,plan.id);
+  assert.deepEqual(state.events[0].myTrainingPlan,plan);
+
+  // Der Plan ist aus dem Termin heraus erreichbar.
+  fireEvent.click(screen.getByText('Training mit Plan'));
+  const detail=await screen.findByRole('dialog');
+  await within(detail).findByText('Deine Einheit');
+  assert.ok(within(detail).getByText('Passspiel Dienstag'));
+  fireEvent.click(within(detail).getByRole('button',{name:'Plan öffnen'}));
+  await waitFor(()=>assert.equal(opened,plan.id));
+  assert.equal(screen.queryByRole('dialog'),null);
+ }finally{cleanup();globalThis.fetch=originalFetch}
+});
+
+test('P6: a player sees the event without any hint of the coach plan',async()=>{
+ const event={id:'abababab-abab-4bab-8bab-abababababab',teamId:team.id,teamName:'U13',kind:'training',title:'Training ohne Plananzeige',startsAt:new Date(Date.now()+2*86400000).toISOString(),endsAt:null,meetAt:null,location:'Platz',notes:'',responseDeadline:null,cancelledAt:null,canManage:false,myUserId:'p1',myTeamRole:'player',myResponse:null,myTrainingPlan:null,summary:{accepted:0,declined:0,maybe:0,open:1,total:1},roster:[{userId:'p1',name:'Pia',teamRole:'player'}],responses:[]};
+ const state=backend({role:'player',events:[event],plans:[{id:'99999999-9999-4999-8999-999999999999',title:'Geheim'}]});
+ try{
+  await mount({manage:false});
+  await screen.findByText('Training ohne Plananzeige');
+  fireEvent.click(screen.getByText('Training ohne Plananzeige'));
+  const dialog=await screen.findByRole('dialog');
+  await within(dialog).findByText('Anwesenheit');
+  assert.equal(within(dialog).queryByText('Deine Einheit'),null);
+  assert.equal(within(dialog).queryByText('Geheim'),null);
+  assert.equal(within(dialog).queryByRole('button',{name:'Plan öffnen'}),null);
  }finally{cleanup();globalThis.fetch=originalFetch}
 });

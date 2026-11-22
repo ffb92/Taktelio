@@ -227,6 +227,42 @@ do $$ begin
  exception when others then if SQLERRM like 'TEST:%' then raise;end if;end;
 end $$;
 
+-- Persönlicher Planbezug: eigener Plan ist erlaubt, fremder Plan nicht, und der
+-- Termin überlebt das Löschen der Einheit.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ declare own_plan uuid; begin
+ insert into public.training_plans(workspace_id,created_by,payload)
+ values(current_setting('test.club')::uuid,auth.uid(),'{"plan":{"title":"Coach-Plan","blocks":[]}}') returning id into own_plan;
+ perform set_config('test.own_plan',own_plan::text,true);
+ -- Dieselbe Einheit an zwei Terminen ist erlaubt.
+ insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,training_plan_id)
+ values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,auth.uid(),'training','Mit Plan',now()+interval '7 days',own_plan);
+ insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,training_plan_id)
+ values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,auth.uid(),'training','Wiederholung',now()+interval '14 days',own_plan);
+end $$;
+
+-- Ein anderer Trainer desselben Vereins darf den Plan weder sehen noch verknüpfen.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000007","role":"authenticated"}',true);
+do $$ begin
+ if exists(select 1 from public.training_plans where id=current_setting('test.own_plan')::uuid) then raise exception 'TEST: foreign plan visible';end if;
+ begin insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,training_plan_id)
+  values(current_setting('test.club')::uuid,current_setting('test.team_other')::uuid,auth.uid(),'training','Fremdplan',now()+interval '7 days',current_setting('test.own_plan')::uuid);
+  raise exception 'TEST: foreign plan linked';
+ exception when others then if SQLERRM like 'TEST:%' then raise;end if;end;
+end $$;
+
+-- Der Eigentümer sieht die Verknüpfung; der Löschvorgang leert sie und der
+-- Termin bleibt bestehen.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ declare changed int; remaining int; begin
+ if not exists(select 1 from public.events where training_plan_id=current_setting('test.own_plan')::uuid) then raise exception 'TEST: own plan link missing';end if;
+ delete from public.training_plans where id=current_setting('test.own_plan')::uuid;
+ get diagnostics changed=row_count;
+ if changed<>1 then raise exception 'TEST: plan not deletable';end if;
+ select count(*) into remaining from public.events where title in('Mit Plan','Wiederholung') and training_plan_id is null;
+ if remaining<>2 then raise exception 'TEST: events did not survive plan deletion %',remaining;end if;
+end $$;
+
 reset role;
 rollback;
 select 'Teams, player invitations, event visibility, attendance responses, roster privacy and team coach scope passed; transaction rolled back' as result;

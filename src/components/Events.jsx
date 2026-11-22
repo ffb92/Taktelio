@@ -61,12 +61,15 @@ function EventForm({workspaceId,teams,event,onSaved,onClose}){
   notes:event?.notes||'',
  }));
  const [busy,setBusy]=useState(false),[message,setMessage]=useState('');
+ // Eine Kennung je Formularsitzung: Ein Wiederholungsversuch nach einem Fehler
+ // legt keinen zweiten Termin an, sondern setzt dieselbe Anfrage fort.
+ const [requestId]=useState(()=>crypto.randomUUID());
  const field=(key,value)=>setForm(old=>({...old,[key]:value}));
  async function submit(e){
   e.preventDefault();setBusy(true);setMessage('');
   try{
    await apiFetch('/api/events',{workspaceId,body:{
-    action:editing?'update':'create',...(editing?{id:event.id}:{}),
+    action:editing?'update':'create',...(editing?{id:event.id}:{}),...(editing?{}:{requestId}),
     teamId:form.teamId,kind:form.kind,title:form.title,
     startsAt:isoFromLocal(form.startsAt),endsAt:isoFromLocal(form.endsAt)||null,
     meetAt:isoFromLocal(form.meetAt)||null,responseDeadline:isoFromLocal(form.responseDeadline)||null,

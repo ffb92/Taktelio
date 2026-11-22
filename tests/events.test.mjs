@@ -72,6 +72,44 @@ test('players cannot create, change or cancel events',async()=>withStub({role:'p
  assert.ok(!calls.some(c=>c.method==='POST'&&c.url.includes('/rest/v1/events')));
 }));
 
+test('a repeated create with the same request id returns the existing event instead of duplicating it',async()=>{
+ const requestId='abababab-abab-4bab-8bab-abababababab';
+ const original=globalThis.fetch;
+ const inserts=[];
+ let stored=null;
+ globalThis.fetch=async(url,init={})=>{
+  const target=String(url),method=init.method||'GET';
+  if(target.includes('/auth/v1/user'))return Response.json({id:'user-a',email:'a@example.com',email_confirmed_at:'2026-01-01'});
+  if(target.includes('/rest/v1/memberships'))return Response.json([{role:'trainer'}]);
+  if(target.includes('/rest/v1/team_members'))return Response.json([{team_id:teamId,role:'coach'}]);
+  if(target.includes('/rest/v1/events')&&method==='POST'){
+   const row=JSON.parse(init.body);inserts.push(row);
+   // Die Datenbank ignoriert eine doppelte Kennung: leere Antwort beim zweiten Mal.
+   if(stored)return Response.json([]);
+   stored={id:'event-1'};return Response.json([stored]);
+  }
+  if(target.includes('/rest/v1/events')&&method==='GET'){
+   return Response.json(stored?[stored]:[]);
+  }
+  return Response.json([]);
+ };
+ try{
+  const first=await eventsApi(req('/api/events',{action:'create',...base,requestId}));
+  const second=await eventsApi(req('/api/events',{action:'create',...base,requestId}));
+  assert.equal(first.status,200);assert.equal(second.status,200);
+  assert.deepEqual(await first.json(),{event:{id:'event-1'}});
+  assert.deepEqual(await second.json(),{event:{id:'event-1'}});
+  assert.equal(inserts.length,2);
+  assert.ok(inserts.every(i=>i.client_request_id===requestId));
+ }finally{globalThis.fetch=original}
+});
+
+test('a malformed request id never reaches the database',async()=>withStub({role:'trainer'},async calls=>{
+ const response=await eventsApi(req('/api/events',{action:'create',...base,requestId:'nicht-gültig'}));
+ assert.equal(response.status,400);
+ assert.ok(!calls.some(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/events')));
+}));
+
 test('a foreign origin is rejected before any event write',async()=>withStub({role:'trainer'},async calls=>{
  const response=await eventsApi(req('/api/events',{action:'create',...base},{origin:'https://evil.example'}));
  assert.equal(response.status,403);

@@ -190,6 +190,34 @@ do $$ declare n int; begin
  if n<2 then raise exception 'TEST: owner saw only % events',n;end if;
 end $$;
 
+-- Idempotenz der Neuanlage: dieselbe Anfragekennung erzeugt höchstens einen
+-- Termin, auch wenn der zweite Versuch den Schreibvorgang wiederholt.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ declare n int; begin
+ insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,client_request_id)
+ values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,auth.uid(),'training','Idempotent',now()+interval '6 days','abababab-abab-4bab-8bab-abababababab')
+ on conflict(workspace_id,client_request_id) where client_request_id is not null do nothing;
+ insert into public.events(workspace_id,team_id,created_by,kind,title,starts_at,client_request_id)
+ values(current_setting('test.club')::uuid,current_setting('test.team')::uuid,auth.uid(),'training','Idempotent',now()+interval '6 days','abababab-abab-4bab-8bab-abababababab')
+ on conflict(workspace_id,client_request_id) where client_request_id is not null do nothing;
+ select count(*) into n from public.events where client_request_id='abababab-abab-4bab-8bab-abababababab';
+ if n<>1 then raise exception 'TEST: duplicate event %',n;end if;
+end $$;
+
+-- Wiederholte Rückmeldung desselben Spielers bleibt eine Zeile.
+select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+do $$ declare n int; begin
+ insert into public.event_responses(event_id,user_id,status,note,updated_at)
+ values(current_setting('test.event_open')::uuid,auth.uid(),'accepted','Erneut',now())
+ on conflict(event_id,user_id) do update set status=excluded.status,note=excluded.note,updated_at=excluded.updated_at;
+ insert into public.event_responses(event_id,user_id,status,note,updated_at)
+ values(current_setting('test.event_open')::uuid,auth.uid(),'declined','Nochmals',now())
+ on conflict(event_id,user_id) do update set status=excluded.status,note=excluded.note,updated_at=excluded.updated_at;
+ select count(*) into n from public.event_responses where event_id=current_setting('test.event_open')::uuid and user_id=auth.uid();
+ if n<>1 then raise exception 'TEST: repeated response rows %',n;end if;
+ if not exists(select 1 from public.event_responses where event_id=current_setting('test.event_open')::uuid and user_id=auth.uid() and status='declined') then raise exception 'TEST: latest response missing';end if;
+end $$;
+
 reset role;
 rollback;
 select 'Teams, player invitations, event visibility, attendance responses, roster privacy and team coach scope passed; transaction rolled back' as result;

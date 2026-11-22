@@ -15,7 +15,7 @@ Arbeitsauftrag für DeepSeek in Claude Code. Der Nutzer hat Codex mit der Checkl
 | ☑ | P1 Trainingsbestand | src/components/Training.jsx, Plan.jsx, Library.jsx und SavedPlans.jsx im selben Ordner, shared/training-plan.mjs. Jeden vorhandenen Nutzerablauf aus P1 prüfen. Betroffene React- und Vertragstests aus tests/ ausführen. |
 | ☑ | P2 Mobiler Ablauf | Training.jsx, Sitzungs- und Vereinswechsel in src/App.jsx sowie tests/local-drafts.test.mjs. Ergebnis der Wiederholungsversuche, Kontoabgrenzung und Zielbreiten beilegen. |
 | ☑ | P3 Terminregeln | In Club.jsx und Onboarding.jsx die Mannschaftsauswahl und Annahme nachvollziehen. Die tatsächlichen Rollen aus worker/events.mjs und den Termin-Policies gegen T1/T2 prüfen. Insbesondere Trainer anderer Mannschaften desselben Vereins berücksichtigen. |
-| ☐ | P4 Kalenderzugriff | tests/events.test.mjs und die über tests/database.test.mjs ausgeführten SQL-Fälle nutzen. Einladung mit Mannschaft, Kalenderzugriff, Fristen und wiederholte Rückmeldung aus Spielersicht prüfen. Nur belegte Lücken ändern. |
+| ☑ | P4 Kalenderzugriff | tests/events.test.mjs und die über tests/database.test.mjs ausgeführten SQL-Fälle nutzen. Einladung mit Mannschaft, Kalenderzugriff, Fristen und wiederholte Rückmeldung aus Spielersicht prüfen. Nur belegte Lücken ändern. |
 | ☐ | P5 Terminansicht | Navigation in src/App.jsx, bestehende Formulare und React-Tests als Muster. Als Trainer Spiel mit Datum, Uhrzeit und Ort anlegen und verschieben. Eine Mannschaftseinladung annehmen, vorhandenes Spiel öffnen und einen danach erstellten zweiten Termin ohne weitere Einladung sehen. Pro Termin getrennt zu- oder absagen. Als Trainer Rückmeldungen nach Reload prüfen. Fehler und Entfernen nach Rollenmatrix testen. |
 | ☐ | P6 Training am Termin | Optional. Erst nach Produktfreigabe den derzeit fehlenden Bezug zwischen Termin und persönlicher Einheit bearbeiten. |
 | ☐ | P7 Unabhängige Abnahme | npm test und npm run build unter Node 22, danach Trainerdurchlauf und Übergabe an einen frischen QA-Chat mit docs/pilot-qa.md. |
@@ -24,6 +24,7 @@ P1-Stand vom 22. November 2026: [QA-Abnahme](p1-qa-abnahme.md) · 93/93 Tests un
 P2-Stand vom 22. November 2026: [QA-Übergabe](p2-qa-uebergabe.md) · Unterbrechungsfälle lokal belegt · abgenommen mit offenem Kontrastbefund K1.
 P3-Stand vom 22. November 2026: [Rollenabgleich](p3-rollenabgleich.md) · Ist-Rechte belegt · entschieden und umgesetzt: Trainer und Namenssicht nur eigene Mannschaft · 95/95 Tests.
 P3-Nachtrag: Mannschaftsrolle `coach` als Zuordnung, Migration `20261122170000_team_coach_scope.sql`.
+P4-Stand vom 22. November 2026: [QA-Übergabe](p4-qa-uebergabe.md) · Lücke bei wiederholter Termin-Neuanlage nachgewiesen und behoben · 97/97 Tests · abgenommen nach Korrektur.
 
 **Abschluss je Paket:** Paket-ID · Git-Stand und betroffene Dateien · ausgeführte Schritte · Soll/Ist · offene Punkte · QA-Ergebnis. Produktionsänderungen, Commits und Deployments erfordern einen eigenen Auftrag.
 

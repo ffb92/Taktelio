@@ -13,6 +13,7 @@ async function body(request,limit=8000){
 }
 const EVENT_FIELDS='id,workspace_id,team_id,created_by,kind,title,starts_at,ends_at,meet_at,location,notes,response_deadline,cancelled_at,created_at,updated_at';
 const DAY=86400000;
+const uuidPattern=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 
 async function eventRows(ctx,{eventId,from,to}){
  const filters=['workspace_id=eq.'+ctx.workspaceId];
@@ -136,12 +137,24 @@ export async function eventsApi(request){
   if(b.action==='create'){
    const input=validEventInput(b);
    if(!input)return json({error:'Bitte Titel, Mannschaft und Beginn prüfen.'},400);
+   // Dieselbe Anfragekennung darf höchstens einen Termin anlegen. Nach einem
+   // Zeitüberschreitungsfehler setzt der zweite Versuch sie fort, statt zu duplizieren.
+   const requestId=b.requestId??null;
+   if(requestId!==null&&!uuidPattern.test(requestId))return json({error:'Ungültige Anfragekennung.'},400);
    const rows=await cloudQuery(ctx,'events','POST',{
     workspace_id:ctx.workspaceId,team_id:input.teamId,created_by:ctx.user.id,kind:input.kind,title:input.title,
     starts_at:input.startsAt,ends_at:input.endsAt,meet_at:input.meetAt,location:input.location,notes:input.notes,
-    response_deadline:input.responseDeadline,
-   });
-   return json({event:{id:rows[0].id}});
+    response_deadline:input.responseDeadline,...(requestId?{client_request_id:requestId}:{}),
+   },requestId?'resolution=ignore-duplicates,return=representation':undefined);
+   if(rows.length)return json({event:{id:rows[0].id}});
+   // Kein Ergebnis trotz Schreibversuch: die Kennung ist bereits vergeben. Der
+   // vorhandene Termin wird zurückgegeben, damit ein Wiederholungsversuch
+   // dieselbe Antwort erhält.
+   if(requestId){
+    const existing=await cloudQuery(ctx,'events?workspace_id=eq.'+ctx.workspaceId+'&client_request_id=eq.'+requestId+'&select=id');
+    if(existing.length)return json({event:{id:existing[0].id}});
+   }
+   return json({error:'Der Termin konnte nicht angelegt werden. Bitte erneut versuchen.'},503);
   }
   if(b.action==='update'){
    if(!isUuid(b.id))return json({error:'Ungültiger Termin.'},400);

@@ -182,3 +182,28 @@ test('accepting an invitation opens the invited club instead of the previously a
   assert.equal(sessionStorage.getItem('trainer-club-invite'),null);
  }finally{cleanup();globalThis.fetch=realFetch;sessionStorage.clear();localStorage.clear()}
 });
+
+test('an expired session is renewed exactly once and the request retried',async()=>{
+ let refreshCalls=0;const hits={};
+ const original=globalThis.fetch;
+ try{
+  globalThis.fetch=async path=>{
+   hits[path]=(hits[path]||0)+1;
+   if(path==='/api/auth/refresh'){refreshCalls++;return Response.json({ok:true})}
+   // Erster Versuch abgelaufen, nach der Erneuerung erfolgreich.
+   if(hits[path]===1)return Response.json({error:'Bitte anmelden'},{status:401});
+   return Response.json({ok:true,path});
+  };
+  // Eigene Modulinstanz, damit der geteilte refreshFlight nicht von anderen Tests stammt.
+  const {apiFetch}=await import('../src/lib/api.js?session-refresh');
+  assert.deepEqual(await apiFetch('/api/einzel'),{ok:true,path:'/api/einzel'});
+  assert.equal(refreshCalls,1);
+  assert.equal(hits['/api/einzel'],2);
+
+  // Gleichzeitige 401 lösen nur eine Erneuerung aus, jede Anfrage wird einmal wiederholt.
+  const [a,b]=await Promise.all([apiFetch('/api/a'),apiFetch('/api/b')]);
+  assert.equal(a.ok,true);assert.equal(b.ok,true);
+  assert.equal(refreshCalls,2);
+  assert.equal(hits['/api/a'],2);assert.equal(hits['/api/b'],2);
+ }finally{globalThis.fetch=original}
+});

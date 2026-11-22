@@ -12,15 +12,23 @@ const {default:Training}=await import('../src/components/Training.jsx');
 const originalFetch=globalThis.fetch;
 const workspaceId='11111111-1111-4111-8111-111111111111';
 const criteria={age:'U11',players:12,minutes:60,goal:'Passen',material:'Bälle',space:'Halber Platz',notes:''};
-const block=(title,phase)=>({sourceExerciseId:'',title,phase,minutes:30,groups:[6,6],organization:'Zwei Felder',materials:'Bälle',fieldSize:'20 x 20 m',steps:['Passen und freilaufen'],coaching:['Anbieten'],easier:'Mehr Raum',harder:'Weniger Kontakte',intensity:'mittel',workRest:'3 × 4 Min., 90 Sek. Pause',netPlayingMinutes:12,diagram:{caption:'Sechs Personen pro Feld',objects:[],arrows:[]}});
-const planA={title:'Plan A',summary:'Erster Entwurf',blocks:[block('A-Einstieg','Einstieg'),block('A-Spiel','Spielform')]};
-const planB={title:'Plan B',summary:'Überarbeitet',blocks:[block('B-Einstieg','Einstieg'),block('B-Spiel','Spielform')]};
+// Jeder Block trägt eindeutige Textmarker, damit ein Vergleich alle sichtbaren
+// Felder abdeckt und nicht nur Titel, Minuten und Teilnehmerzahl.
+const block=(tag,title,phase)=>({sourceExerciseId:'',title,phase,minutes:30,groups:[6,6],organization:`${tag} Organisation`,materials:`${tag} Material`,fieldSize:`${tag} Feld`,steps:[`${tag} Schritt`],coaching:[`${tag} Coaching`],easier:`${tag} leichter`,harder:`${tag} schwerer`,intensity:tag[0]==='A'?'hoch':'niedrig',workRest:`${tag} Belastung`,netPlayingMinutes:tag[0]==='A'?17:11,diagram:{caption:`${tag} Grafik`,objects:[],arrows:[]}});
+const planA={title:'Plan A',summary:'Erster Entwurf',blocks:[block('A1','A-Einstieg','Einstieg'),block('A2','A-Spiel','Spielform')]};
+const planB={title:'Plan B',summary:'Überarbeitet',blocks:[block('B1','B-Einstieg','Einstieg'),block('B2','B-Spiel','Spielform')]};
+// Alle sichtbaren Textfelder eines Plans; fehlende oder verbliebene Inhalte fallen so auf.
+const visibleTexts=tags=>tags.flatMap(t=>[`${t} Organisation`,`${t} Material`,`${t} Feld`,`${t} Schritt`,`${t} Coaching`,`${t} leichter`,`${t} schwerer`,`${t} Belastung`,`${t} Grafik`]);
+const A_TEXTS=visibleTexts(['A1','A2']),B_TEXTS=visibleTexts(['B1','B2']);
+const rx=text=>new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
 const savedId='22222222-2222-4222-8222-222222222222';
 
 function mockBackend(){
  const state={planCalls:[],statusCalls:0,saves:[],deleted:[],listing:[],catalog:[],failNextPlan:false,failNextSave:false};
  globalThis.fetch=async(path,options={})=>{
-  if(path==='/api/status'){state.statusCalls++;return Response.json({ready:true,message:`${state.saves.length?0:state.statusCalls-1} von 10 KI-Generierungen verwendet`})}
+  // Der zweite Aufruf liefert bewusst einen anderen Wert: Nur so belegt die
+  // Oberfläche, dass nach der Generierung der Serverwert erneut gelesen wird.
+  if(path==='/api/status'){state.statusCalls++;return Response.json({ready:true,message:`${state.statusCalls===1?8:7} von 10 KI-Generierungen verwendet`})}
   if(path==='/api/exercises')return Response.json({exercises:state.catalog});
   if(path==='/api/plan'){
    const body=JSON.parse(options.body);state.planCalls.push(body);
@@ -59,9 +67,9 @@ test('P1 journey: generate, adjust, restore, save, reopen and delete keep every 
   assert.equal(state.planCalls.length,1);
   assert.equal(state.planCalls[0].criteria.minutes,60);
   assert.equal(state.planCalls[0].mode,'hybrid');
-  // Restkontingent kommt nach der Anfrage erneut vom Server
+  // Restkontingent kommt nach der Anfrage erneut vom Server (7, nicht der Startwert 8).
   await waitFor(()=>assert.equal(state.statusCalls,2));
-  await screen.findByText(/von 10 KI-Generierungen verwendet/);
+  await screen.findByText('7 von 10 KI-Generierungen verwendet');
 
   // Änderung mit dem letzten gültigen Plan als Vorlage
   fireEvent.change(screen.getByPlaceholderText(/einfachere Übungen/),{target:{value:'nur noch 5 Bälle'}});
@@ -76,8 +84,11 @@ test('P1 journey: generate, adjust, restore, save, reopen and delete keep every 
   await screen.findByRole('heading',{name:'Plan A'});
   assert.ok(screen.getByRole('heading',{name:'A-Einstieg'}));
   assert.ok(screen.getByRole('heading',{name:'A-Spiel'}));
+  for(const text of A_TEXTS)assert.ok(screen.getByText(rx(text)),'fehlt nach Rückkehr: '+text);
+  for(const text of B_TEXTS)assert.equal(screen.queryByText(rx(text)),null,'Überarbeitung blieb sichtbar: '+text);
   assert.equal(screen.getByLabelText('Minuten').value,'60');
   assert.equal(screen.getByLabelText('Teilnehmende').value,'12');
+  assert.equal(screen.getByLabelText('Schwerpunkt').value,'Passspiel und Freilaufen');
 
   // Speichern
   fireEvent.click(screen.getByRole('button',{name:'Einheit speichern'}));
@@ -94,6 +105,9 @@ test('P1 journey: generate, adjust, restore, save, reopen and delete keep every 
   assert.equal(screen.getByLabelText('Teilnehmende').value,'12');
   assert.ok(screen.getByRole('heading',{name:'A-Einstieg'}));
   assert.ok(screen.getByRole('heading',{name:'A-Spiel'}));
+  // Beim Wiederöffnen müssen alle Inhalte der gespeicherten Einheit zurückkommen.
+  for(const text of A_TEXTS)assert.ok(screen.getByText(rx(text)),'fehlt beim Wiederöffnen: '+text);
+  for(const text of B_TEXTS)assert.equal(screen.queryByText(rx(text)),null,'fremder Inhalt beim Wiederöffnen: '+text);
 
   // Löschen
   fireEvent.click(screen.getByRole('button',{name:'Einheiten',exact:true}));
@@ -171,6 +185,23 @@ test('a failed change request keeps inputs, change text and the last valid plan'
   assert.equal(state.planCalls.length,3);
   assert.equal(state.planCalls[1].requestId,state.planCalls[2].requestId);
   assert.deepEqual(state.planCalls[2].previous,planA);
+ }finally{cleanup();globalThis.fetch=originalFetch;localStorage.clear()}
+});
+
+test('every planning mode is selectable and reaches the shared contract',async()=>{
+ const state=mockBackend();
+ try{
+  render(React.createElement(Training,{workspaceId,onBusy:()=>{}}));
+  await waitFor(()=>assert.equal(screen.getByRole('button',{name:'KI-Training erstellen'}).disabled,false));
+  for(const mode of ['library','new','hybrid']){
+   fireEvent.change(screen.getByLabelText('Planungsmodus'),{target:{value:mode}});
+   const before=state.planCalls.length;
+   fireEvent.click(screen.getByRole('button',{name:'KI-Training erstellen'}));
+   await waitFor(()=>assert.equal(state.planCalls.length,before+1));
+   await waitFor(()=>assert.equal(screen.getByRole('button',{name:'KI-Training erstellen'}).disabled,false));
+   assert.equal(state.planCalls[before].mode,mode);
+  }
+  assert.deepEqual(state.planCalls.map(c=>c.mode),['library','new','hybrid']);
  }finally{cleanup();globalThis.fetch=originalFetch;localStorage.clear()}
 });
 

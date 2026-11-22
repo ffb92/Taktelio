@@ -44,11 +44,13 @@ export default function Training({workspaceId,onBusy}){
   try{
    const d=await apiFetch('/api/plan',{workspaceId,body:{...payload,requestId:pending.current.id}});
    pending.current=null;if(!alive.current)return;
-   setPrevious(record);setRecord({...d,criteria});setMessage('Entwurf erstellt. Aufbau, Zeiten und Spielerzahlen geprüft; Inhalte bitte fachlich prüfen.');
+   // Eine überarbeitete, bereits gespeicherte Einheit behält ihre Zeile; sonst
+   // entstünde beim Speichern eine zweite Kopie derselben Einheit.
+   setPrevious(record);setRecord({...d,criteria,...(record?.id?{id:record.id}:{})});setMessage('Entwurf erstellt. Aufbau, Zeiten und Spielerzahlen geprüft; Inhalte bitte fachlich prüfen.');
   }catch(e){if(e.code==='already_finished'||e.code==='conflict'||(e.status&&![401,503,409,429].includes(e.status)))pending.current=null;if(alive.current)setMessage(e.message||'Verbindung unterbrochen. Dein bisheriger Plan bleibt erhalten.')}
   finally{flight.current=false;if(alive.current){setBusy(false);onBusy(false);await refreshStatus()}}
  }
- async function save(){setSaving(true);const updating=!!record.id;try{const d=await apiFetch('/api/storage',{workspaceId,body:{action:'save',id:record.id||null,payload:record}});if(alive.current){if(d.record?.id)setRecord(old=>old?{...old,id:d.record.id}:old);setMessage(updating?'Einheit aktualisiert.':'Einheit für deinen Verein gespeichert.')}}catch(e){if(alive.current)setMessage(e.message)}finally{if(alive.current)setSaving(false)}}
+ async function save(){setSaving(true);const updating=!!record.id;try{const d=await apiFetch('/api/storage',{workspaceId,body:{action:'save',id:record.id||null,payload:record}});if(alive.current){if(d.record?.id)setRecord(old=>old?{...old,id:d.record.id}:old);setMessage(updating?'Einheit aktualisiert.':'Einheit für deinen Verein gespeichert.')}}catch(e){if(alive.current){if(e.status===404&&updating){setRecord(old=>old?{...old,id:null}:old);setMessage('Diese Einheit ist nicht mehr vorhanden. Erneutes Speichern legt eine neue Einheit an.')}else setMessage(e.message)}}finally{if(alive.current)setSaving(false)}}
  async function adopt(block){setSaving(true);try{const age={'U9':9,'U11':11,'U13':13,'U15':15,'U17 / U19':17,'Senioren':18}[record.criteria.age];const payload={title:block.title,topic:record.criteria.goal,phase:block.phase,ageMin:age,ageMax:age,playersMin:Math.min(...block.groups),playersMax:Math.max(...block.groups),duration:block.minutes,fieldSize:block.fieldSize,materials:block.materials,organization:block.organization,steps:block.steps,coaching:block.coaching,easier:block.easier,harder:block.harder,diagram:block.diagram,notes:'Aus einer KI-Einheit übernommen. Fachlich ungeprüft.'};const d=await apiFetch('/api/storage',{workspaceId,body:{action:'adopt',payload}});if(alive.current)setMessage(d.existing?'Dieser Entwurf ist bereits vorhanden.':'Übung im Verein gespeichert.');await reloadCatalog()}catch(e){if(alive.current)setMessage(e.message)}finally{if(alive.current)setSaving(false)}}
 
  return <section>

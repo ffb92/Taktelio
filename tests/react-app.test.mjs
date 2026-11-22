@@ -152,3 +152,33 @@ test('a complete legacy saved plan opens in the planner with its criteria intact
   assert.equal(screen.getAllByRole('heading',{name:'Passspiel',exact:true}).length,2);
  }finally{cleanup();globalThis.fetch=realFetch;localStorage.clear()}
 });
+
+test('accepting an invitation opens the invited club instead of the previously active one',async()=>{
+ const token='a'.repeat(72),calls=[];let authenticated=false;
+ sessionStorage.setItem('trainer-club-invite',token);
+ globalThis.fetch=async(path,options={})=>{
+  calls.push({path,options});
+  if(path==='/api/auth/refresh')return Response.json({error:'Bitte anmelden'},{status:401});
+  if(path==='/api/auth/me')return authenticated?Response.json({user:{id:'test-user',email:'trainer@example.com'}}):Response.json({user:null},{status:401});
+  if(path==='/api/auth/login'){authenticated=true;return Response.json({ok:true})}
+  if(path==='/api/workspaces')return Response.json({workspaces:[clubA,clubB]});
+  if(path==='/api/invitation')return Response.json({invitation:{inviter:'Trainer A',club:'Verein B',role:'trainer',team:null}});
+  if(path==='/api/club/preview')return Response.json({invitation:{inviter:'Trainer A',club:'Verein B',email:'trainer@example.com',role:'trainer',team:null}});
+  if(path==='/api/club/accept')return Response.json({id:clubB.id});
+  if(path==='/api/status')return Response.json({ready:false,message:'KI-Zugang noch nicht eingerichtet.'});
+  if(path==='/api/exercises')return Response.json({exercises:[]});
+  throw Error('Unexpected request: '+path);
+ };
+ try{
+  render(React.createElement(App));
+  await login();
+  await screen.findByRole('button',{name:'Einladung annehmen'});
+  // Der Verein wird kurz nachgeladen; deshalb die aktuell gerenderte Schaltfläche prüfen.
+  await waitFor(()=>assert.equal(screen.getByRole('button',{name:'Einladung annehmen'}).disabled,false));
+  fireEvent.click(screen.getByRole('button',{name:'Einladung annehmen'}));
+  await screen.findByRole('button',{name:'KI-Training erstellen'});
+  const scoped=calls.find(c=>c.path==='/api/exercises');
+  assert.equal(scoped.options.headers['x-workspace-id'],clubB.id);
+  assert.equal(sessionStorage.getItem('trainer-club-invite'),null);
+ }finally{cleanup();globalThis.fetch=realFetch;sessionStorage.clear();localStorage.clear()}
+});

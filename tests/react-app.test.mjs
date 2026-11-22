@@ -152,3 +152,58 @@ test('a complete legacy saved plan opens in the planner with its criteria intact
   assert.equal(screen.getAllByRole('heading',{name:'Passspiel',exact:true}).length,2);
  }finally{cleanup();globalThis.fetch=realFetch;localStorage.clear()}
 });
+
+test('accepting an invitation opens the invited club instead of the previously active one',async()=>{
+ const token='a'.repeat(72),calls=[];let authenticated=false;
+ sessionStorage.setItem('trainer-club-invite',token);
+ globalThis.fetch=async(path,options={})=>{
+  calls.push({path,options});
+  if(path==='/api/auth/refresh')return Response.json({error:'Bitte anmelden'},{status:401});
+  if(path==='/api/auth/me')return authenticated?Response.json({user:{id:'test-user',email:'trainer@example.com'}}):Response.json({user:null},{status:401});
+  if(path==='/api/auth/login'){authenticated=true;return Response.json({ok:true})}
+  if(path==='/api/workspaces')return Response.json({workspaces:[clubA,clubB]});
+  if(path==='/api/invitation')return Response.json({invitation:{inviter:'Trainer A',club:'Verein B',role:'trainer',team:null}});
+  if(path==='/api/club/preview')return Response.json({invitation:{inviter:'Trainer A',club:'Verein B',email:'trainer@example.com',role:'trainer',team:null}});
+  if(path==='/api/club/accept')return Response.json({id:clubB.id});
+  if(path==='/api/status')return Response.json({ready:false,message:'KI-Zugang noch nicht eingerichtet.'});
+  if(path==='/api/exercises')return Response.json({exercises:[]});
+  throw Error('Unexpected request: '+path);
+ };
+ try{
+  render(React.createElement(App));
+  await login();
+  await screen.findByRole('button',{name:'Einladung annehmen'});
+  // Der Verein wird kurz nachgeladen; deshalb die aktuell gerenderte Schaltfläche prüfen.
+  await waitFor(()=>assert.equal(screen.getByRole('button',{name:'Einladung annehmen'}).disabled,false));
+  fireEvent.click(screen.getByRole('button',{name:'Einladung annehmen'}));
+  await screen.findByRole('button',{name:'KI-Training erstellen'});
+  const scoped=calls.find(c=>c.path==='/api/exercises');
+  assert.equal(scoped.options.headers['x-workspace-id'],clubB.id);
+  assert.equal(sessionStorage.getItem('trainer-club-invite'),null);
+ }finally{cleanup();globalThis.fetch=realFetch;sessionStorage.clear();localStorage.clear()}
+});
+
+test('an expired session is renewed exactly once and the request retried',async()=>{
+ let refreshCalls=0;const hits={};
+ const original=globalThis.fetch;
+ try{
+  globalThis.fetch=async path=>{
+   hits[path]=(hits[path]||0)+1;
+   if(path==='/api/auth/refresh'){refreshCalls++;return Response.json({ok:true})}
+   // Erster Versuch abgelaufen, nach der Erneuerung erfolgreich.
+   if(hits[path]===1)return Response.json({error:'Bitte anmelden'},{status:401});
+   return Response.json({ok:true,path});
+  };
+  // Eigene Modulinstanz, damit der geteilte refreshFlight nicht von anderen Tests stammt.
+  const {apiFetch}=await import('../src/lib/api.js?session-refresh');
+  assert.deepEqual(await apiFetch('/api/einzel'),{ok:true,path:'/api/einzel'});
+  assert.equal(refreshCalls,1);
+  assert.equal(hits['/api/einzel'],2);
+
+  // Gleichzeitige 401 lösen nur eine Erneuerung aus, jede Anfrage wird einmal wiederholt.
+  const [a,b]=await Promise.all([apiFetch('/api/a'),apiFetch('/api/b')]);
+  assert.equal(a.ok,true);assert.equal(b.ok,true);
+  assert.equal(refreshCalls,2);
+  assert.equal(hits['/api/a'],2);assert.equal(hits['/api/b'],2);
+ }finally{globalThis.fetch=original}
+});

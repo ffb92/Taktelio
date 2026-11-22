@@ -41,8 +41,8 @@ export default function SavedPlans({workspaceId,onOpen}){
       </div>
      </div>
      <div className="flex gap-2 sm:shrink-0">
-      <Button variant="outline" size="sm" onClick={()=>open({...r.payload,id:r.id})}><FolderOpen/>Öffnen</Button>
-      <Button variant="ghost" size="sm" disabled={busy} onClick={()=>remove(r.id)}><Trash2/>Löschen</Button>
+      <Button variant="outline" size="sm" className="min-h-11" onClick={()=>open({...r.payload,id:r.id})}><FolderOpen/>Öffnen</Button>
+      <Button variant="ghost" size="sm" className="min-h-11" disabled={busy} onClick={()=>remove(r.id)}><Trash2/>Löschen</Button>
      </div>
     </div>
    </Card>)}
@@ -54,7 +54,7 @@ export default function SavedPlans({workspaceId,onOpen}){
    <p className="mt-1 text-xs text-muted-foreground">Erstelle im Bereich „Planen“ deinen ersten Trainingsentwurf.</p>
   </Card>}
 
-  {next!==null&&<Button variant="outline" className="mt-4" disabled={busy} onClick={more}>Weitere laden</Button>}
+  {next!==null&&<Button variant="outline" className="mt-4 min-h-11" disabled={busy} onClick={more}>Weitere laden</Button>}
 
   <details className="group mt-8 rounded-xl border bg-card px-4 py-3">
    <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium marker:hidden">

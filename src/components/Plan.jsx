@@ -80,13 +80,18 @@ export default function Plan({record,onAdopt,busy}){
      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{record.plan.summary}</p>
     </div>
    </div>
-   <div className={cn('grid gap-px border-t bg-border text-center',hasNet?'grid-cols-2 sm:grid-cols-4':'grid-cols-3')}>
+   <div role="group" aria-label="Eckdaten" className={cn('grid gap-px border-t bg-border text-center',hasNet?'grid-cols-2 sm:grid-cols-4':'grid-cols-3')}>
     <div className="bg-card px-2 py-3"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Alter</p><p className="mt-0.5 truncate text-sm font-semibold">{record.criteria.age}</p></div>
     <div className="bg-card px-2 py-3"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Personen</p><p className="mt-0.5 truncate text-sm font-semibold">{record.criteria.players}</p></div>
     <div className="bg-card px-2 py-3"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Minuten</p><p className="mt-0.5 truncate text-sm font-semibold">{record.criteria.minutes}</p></div>
     {hasNet&&<div className="bg-card px-2 py-3"><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Spielzeit</p><p className={cn('mt-0.5 truncate text-sm font-semibold',target>0&&totalNet<target&&'text-amber-600 dark:text-amber-400')}>{totalNet}{target>0&&<span className="font-normal text-muted-foreground"> / {target}</span>}</p></div>}
    </div>
    {hasNet&&target>0&&totalNet<target&&<p className="border-t bg-amber-50 px-5 py-2 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">Unter dem Richtwert für {record.criteria.age}: geplant sind {totalNet} von mindestens {target} Minuten Nettospielzeit.</p>}
+   {/* Die Übersicht beantwortet vor dem Training: Was, für wen, wie lange, womit. */}
+   <dl role="group" aria-label="Schwerpunkt und Material" className="grid gap-px border-t bg-border text-sm sm:grid-cols-2">
+    <div className="bg-card px-5 py-3"><dt className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Schwerpunkt</dt><dd className="mt-0.5 break-words text-muted-foreground">{record.criteria.goal}</dd></div>
+    <div className="bg-card px-5 py-3"><dt className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Material</dt><dd className="mt-0.5 break-words text-muted-foreground">{record.criteria.material}</dd></div>
+   </dl>
   </Card>
 
   {record.plan.blocks.map((b,i)=><Card className="print-avoid-break gap-0 py-0" key={i}>

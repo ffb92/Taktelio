@@ -82,6 +82,6 @@ export default function App(){
               : null}
     {navigation&&['social','scouting'].includes(currentPage)&&<ComingSoon module={currentPage}/>}
     {navigation&&currentPage==='events'&&<Events key={user.id+':'+workspaceId} workspaceId={workspaceId}/>}
-    {navigation&&role!=='player'&&<div hidden={currentPage!=='training'}><Training key={user.id+':'+workspaceId} workspaceId={workspaceId} onBusy={setBusy}/></div>}
+    {navigation&&role!=='player'&&<div hidden={currentPage!=='training'}><Training key={user.id+':'+workspaceId} userId={user.id} workspaceId={workspaceId} onBusy={setBusy}/></div>}
   </AppShell>;
 }

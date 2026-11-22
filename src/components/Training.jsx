@@ -3,6 +3,7 @@ import {ageRule,netPlayTarget} from '../../shared/age-rules.mjs';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {Sparkles,SlidersHorizontal,LibraryBig,ClipboardList,LoaderCircle,Save,Printer,Undo2,WandSparkles,CircleAlert,CheckCircle2,Info} from 'lucide-react';
 import {apiFetch} from '../lib/api.js';
+import {loadTrainingSession,saveTrainingSession} from '../lib/training-session.js';
 import Plan from './Plan.jsx';
 import Library from './Library.jsx';
 import SavedPlans from './SavedPlans.jsx';
@@ -25,30 +26,55 @@ function AgeRuleHint({age,minutes}){
  return <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{rule.level}: {rule.gameFormat} · Ballgröße {rule.ballSize} · {rule.heading?`Kopfball ${rule.heading}`:'kein Kopfballtraining'}{target>0?` · mind. ${target} Min. Nettospielzeit`:''}.</p>;
 }
 
-export default function Training({workspaceId,onBusy}){
- const [view,setView]=useState('ai'),[criteria,setCriteria]=useState(initial),[mode,setMode]=useState('hybrid'),[record,setRecord]=useState(null),[previous,setPrevious]=useState(null),[change,setChange]=useState(''),[busy,setBusy]=useState(false),[saving,setSaving]=useState(false),[message,setMessage]=useState(''),[status,setStatus]=useState({ready:false,message:'Modellzugang wird geprüft …'}),[catalog,setCatalog]=useState([]),[catalogMessage,setCatalogMessage]=useState('');
- const pending=useRef(null),flight=useRef(false),alive=useRef(true),form=useRef(null);
- const refreshStatus=useCallback(async()=>{try{const d=await apiFetch('/api/status',{workspaceId});if(alive.current)setStatus(d)}catch(e){if(alive.current)setStatus({ready:false,message:e.message})}},[workspaceId]);
- const reloadCatalog=useCallback(async()=>{try{const d=await apiFetch('/api/exercises',{workspaceId});if(alive.current){setCatalog(d.exercises);setCatalogMessage('')}}catch(e){if(alive.current)setCatalogMessage(e.message)}},[workspaceId]);
+export default function Training({workspaceId,userId,onBusy}){
+ // Beim Neuladen werden Entwurf und laufende Anfrage für dieses Konto und diesen
+ // Verein wiederhergestellt; ein anderes Konto sieht sie nie.
+ const [restored]=useState(()=>{
+  const session=loadTrainingSession(userId,workspaceId);
+  if(!session)return null;
+  // Ein beschädigter Entwurf wird verworfen, die laufende Anfrage bleibt nutzbar.
+  return {...session,draft:session.draft?normalizeRecord(session.draft):null};
+ });
+ const [view,setView]=useState('ai'),[criteria,setCriteria]=useState(restored?.draft?.criteria||initial),[mode,setMode]=useState(restored?.draft?.mode||'hybrid'),[record,setRecord]=useState(restored?.draft||null),[previous,setPrevious]=useState(null),[change,setChange]=useState(''),[busy,setBusy]=useState(false),[saving,setSaving]=useState(false),[message,setMessage]=useState(()=>restored?.pending?'Eine Generierung wurde unterbrochen. „KI-Training erstellen“ setzt dieselbe Anfrage fort, ohne eine zweite zu starten.':restored?.draft?'Dein letzter Entwurf wurde wiederhergestellt.':'');
+ const [status,setStatus]=useState({ready:false,message:'Modellzugang wird geprüft …'}),[catalog,setCatalog]=useState([]),[catalogMessage,setCatalogMessage]=useState('');
+ const [online,setOnline]=useState(()=>navigator.onLine!==false);
+ const pending=useRef(restored?.pending||null),flight=useRef(false),alive=useRef(true),form=useRef(null);
+ const offlineMessage='Keine Verbindung. Dein bisheriger Entwurf und gespeicherte Einheiten bleiben nutzbar. Speichern und neue Generierungen brauchen eine Verbindung.';
+ const refreshStatus=useCallback(async()=>{try{const d=await apiFetch('/api/status',{workspaceId});if(alive.current)setStatus(d)}catch(e){if(alive.current)setStatus({ready:false,message:navigator.onLine===false?offlineMessage:e.message})}},[workspaceId]);
+ const reloadCatalog=useCallback(async()=>{try{const d=await apiFetch('/api/exercises',{workspaceId});if(alive.current){setCatalog(d.exercises);setCatalogMessage('')}}catch(e){if(alive.current)setCatalogMessage(navigator.onLine===false?offlineMessage:e.message)}},[workspaceId]);
  useEffect(()=>{alive.current=true;refreshStatus();reloadCatalog();return()=>{alive.current=false}},[refreshStatus,reloadCatalog]);
+ useEffect(()=>{const up=()=>setOnline(true),down=()=>setOnline(false);window.addEventListener('online',up);window.addEventListener('offline',down);return()=>{window.removeEventListener('online',up);window.removeEventListener('offline',down)}},[]);
+ // Der letzte Entwurf wird bei jeder Änderung gesichert, damit ein Neuladen ihn nicht verliert.
+ useEffect(()=>{saveTrainingSession(userId,workspaceId,{draft:record,pending:pending.current})},[userId,workspaceId,record]);
  const field=(name,value)=>setCriteria(old=>({...old,[name]:value}));
  const load=input=>{const r=normalizeRecord(input);if(!r){setMessage('Diese Einheit ist unvollständig und kann nicht geöffnet werden.');return}setPrevious(record);setRecord(r);setCriteria(r.criteria);setMode(r.mode||'hybrid');setView('ai');setMessage('')};
  async function generate(adjust=false){
   if(flight.current||!form.current.reportValidity())return;
   if(adjust&&!change.trim())return setMessage('Beschreibe zuerst die gewünschte Änderung.');
+  if(navigator.onLine===false)return setMessage(offlineMessage);
   if(!status.ready&&!pending.current)return setMessage(status.message);
   flight.current=true;setBusy(true);onBusy(true);setMessage(adjust?'Die KI überarbeitet deine Einheit …':'Die KI plant deine Einheit. Das kann bis zu einer Minute dauern …');
   const payload={criteria,mode,change:adjust?change:'',previous:adjust?record.plan:null};
   const fingerprint=JSON.stringify([workspaceId,payload]);
+  // Solange derselbe Auftrag aussteht, bleibt seine Kennung erhalten. Nach einem
+  // Neuladen wird dieselbe Anfrage fortgesetzt statt einer zweiten gestartet.
   if(!pending.current||pending.current.fingerprint!==fingerprint)pending.current={fingerprint,id:crypto.randomUUID()};
+  saveTrainingSession(userId,workspaceId,{draft:record,pending:pending.current});
   try{
    const d=await apiFetch('/api/plan',{workspaceId,body:{...payload,requestId:pending.current.id}});
    pending.current=null;if(!alive.current)return;
-   setPrevious(record);setRecord({...d,criteria});setMessage('Entwurf erstellt. Aufbau, Zeiten und Spielerzahlen geprüft; Inhalte bitte fachlich prüfen.');
-  }catch(e){if(e.code==='already_finished'||e.code==='conflict'||(e.status&&![401,503,409,429].includes(e.status)))pending.current=null;if(alive.current)setMessage(e.message||'Verbindung unterbrochen. Dein bisheriger Plan bleibt erhalten.')}
+   // Eine überarbeitete, bereits gespeicherte Einheit behält ihre Zeile; sonst
+   // entstünde beim Speichern eine zweite Kopie derselben Einheit.
+   const next={...d,criteria,...(record?.id?{id:record.id}:{})};
+   setPrevious(record);setRecord(next);saveTrainingSession(userId,workspaceId,{draft:next,pending:null});setMessage('Entwurf erstellt. Aufbau, Zeiten und Spielerzahlen geprüft; Inhalte bitte fachlich prüfen.');
+  }catch(e){
+   if(e.code==='already_finished'||e.code==='conflict'||(e.status&&![401,503,409,429].includes(e.status)))pending.current=null;
+   saveTrainingSession(userId,workspaceId,{draft:record,pending:pending.current});
+   if(alive.current)setMessage(e.status?e.message||'Anfrage fehlgeschlagen. Dein bisheriger Plan bleibt erhalten.':navigator.onLine===false?offlineMessage:'Verbindung unterbrochen. Dein bisheriger Plan bleibt erhalten. „KI-Training erstellen“ setzt dieselbe Anfrage fort.');
+  }
   finally{flight.current=false;if(alive.current){setBusy(false);onBusy(false);await refreshStatus()}}
  }
- async function save(){setSaving(true);const updating=!!record.id;try{const d=await apiFetch('/api/storage',{workspaceId,body:{action:'save',id:record.id||null,payload:record}});if(alive.current){if(d.record?.id)setRecord(old=>old?{...old,id:d.record.id}:old);setMessage(updating?'Einheit aktualisiert.':'Einheit für deinen Verein gespeichert.')}}catch(e){if(alive.current)setMessage(e.message)}finally{if(alive.current)setSaving(false)}}
+ async function save(){setSaving(true);const updating=!!record.id;try{const d=await apiFetch('/api/storage',{workspaceId,body:{action:'save',id:record.id||null,payload:record}});if(alive.current){if(d.record?.id)setRecord(old=>old?{...old,id:d.record.id}:old);setMessage(updating?'Einheit aktualisiert.':'Einheit für deinen Verein gespeichert.')}}catch(e){if(alive.current){if(e.status===404&&updating){setRecord(old=>old?{...old,id:null}:old);setMessage('Diese Einheit ist nicht mehr vorhanden. Erneutes Speichern legt eine neue Einheit an.')}else setMessage(e.message)}}finally{if(alive.current)setSaving(false)}}
  async function adopt(block){setSaving(true);try{const age={'U9':9,'U11':11,'U13':13,'U15':15,'U17 / U19':17,'Senioren':18}[record.criteria.age];const payload={title:block.title,topic:record.criteria.goal,phase:block.phase,ageMin:age,ageMax:age,playersMin:Math.min(...block.groups),playersMax:Math.max(...block.groups),duration:block.minutes,fieldSize:block.fieldSize,materials:block.materials,organization:block.organization,steps:block.steps,coaching:block.coaching,easier:block.easier,harder:block.harder,diagram:block.diagram,notes:'Aus einer KI-Einheit übernommen. Fachlich ungeprüft.'};const d=await apiFetch('/api/storage',{workspaceId,body:{action:'adopt',payload}});if(alive.current)setMessage(d.existing?'Dieser Entwurf ist bereits vorhanden.':'Übung im Verein gespeichert.');await reloadCatalog()}catch(e){if(alive.current)setMessage(e.message)}finally{if(alive.current)setSaving(false)}}
 
  return <section>
@@ -80,7 +106,7 @@ export default function Training({workspaceId,onBusy}){
      <fieldset disabled={busy||saving} className="space-y-4 px-5 py-5">
       <div>
        <Label htmlFor="ai-age" className="mb-1.5">Altersgruppe</Label>
-       <NativeSelect id="ai-age" value={criteria.age} onChange={e=>field('age',e.target.value)}>
+       <NativeSelect id="ai-age" required value={criteria.age} onChange={e=>field('age',e.target.value)}>
         {['U9','U11','U13','U15','U17 / U19','Senioren'].map(a=><option key={a}>{a}</option>)}
        </NativeSelect>
        <AgeRuleHint age={criteria.age} minutes={criteria.minutes}/>
@@ -101,8 +127,9 @@ export default function Training({workspaceId,onBusy}){
       <div className="flex gap-2 rounded-lg bg-muted/70 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
        <Info className="mt-0.5 size-3.5 shrink-0"/>Übungsentwürfe als Grundlage. Alle fachlich ungeprüft. Die KI passt Gruppen und Ablauf an eure Vorgaben an.
       </div>
-      <div><Label htmlFor="ai-notes" className="mb-1.5">Weitere Wünsche</Label><Textarea id="ai-notes" rows={3} maxLength={1000} value={criteria.notes} onChange={e=>field('notes',e.target.value)}/></div>
-      <Button type="submit" size="lg" className="min-h-11 w-full" disabled={busy||!(status.ready||pending.current)}>
+      <div><Label htmlFor="ai-notes" className="mb-1.5">Weitere Wünsche <span className="font-normal text-muted-foreground">(optional)</span></Label><Textarea id="ai-notes" rows={3} maxLength={1000} value={criteria.notes} onChange={e=>field('notes',e.target.value)}/></div>
+      <p className="text-xs leading-relaxed text-muted-foreground">Alle Angaben außer „Weitere Wünsche“ sind Pflichtfelder.</p>
+      <Button type="submit" size="lg" className="min-h-11 w-full" disabled={busy||!online||!(status.ready||pending.current)}>
        {busy?<LoaderCircle className="animate-spin"/>:<Sparkles/>}
        KI-Training erstellen
       </Button>
@@ -124,6 +151,10 @@ export default function Training({workspaceId,onBusy}){
      {message&&<CircleAlert className="mt-0.5 size-4 shrink-0 text-muted-foreground"/>}{message}
     </p>
 
+    {!online&&<div role="status" className="print-hidden flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
+     <CircleAlert className="mt-0.5 size-4 shrink-0"/><span>{offlineMessage}</span>
+    </div>}
+
     <Plan record={record} onAdopt={adopt} busy={busy||saving}/>
 
     {record&&<Card className="print-hidden gap-0 py-0">
@@ -135,10 +166,10 @@ export default function Training({workspaceId,onBusy}){
       <Label htmlFor="ai-change" className="sr-only">Einheit anpassen</Label>
       <Input id="ai-change" value={change} maxLength={1000} disabled={busy||saving} onChange={e=>setChange(e.target.value)} placeholder="Zum Beispiel: einfachere Übungen, weniger Umbauten"/>
       <div className="flex flex-wrap gap-2">
-       <Button variant="default" disabled={busy||saving||!(status.ready||pending.current)} onClick={()=>generate(true)}><WandSparkles/>Anpassung vorschlagen</Button>
-       <Button variant="outline" disabled={busy||saving||!previous} onClick={()=>{setPrevious(record);setRecord(previous);setCriteria(previous.criteria);setMode(previous.mode||'hybrid')}}><Undo2/>Vorherige Version</Button>
-       <Button variant="outline" disabled={busy||saving} onClick={save}><Save/>Einheit speichern</Button>
-       <Button variant="ghost" onClick={()=>window.print()}><Printer/>Drucken / PDF</Button>
+       <Button variant="default" className="min-h-11" disabled={busy||saving||!online||!(status.ready||pending.current)} onClick={()=>generate(true)}><WandSparkles/>Anpassung vorschlagen</Button>
+       <Button variant="outline" className="min-h-11" disabled={busy||saving||!previous} onClick={()=>{setPrevious(record);setRecord(previous);setCriteria(previous.criteria);setMode(previous.mode||'hybrid')}}><Undo2/>Vorherige Version</Button>
+       <Button variant="outline" className="min-h-11" disabled={busy||saving||!online} onClick={save}><Save/>Einheit speichern</Button>
+       <Button variant="ghost" className="min-h-11" onClick={()=>window.print()}><Printer/>Drucken / PDF</Button>
       </div>
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 className="size-3.5"/>Gespeicherte Einheiten findest du jederzeit unter „Einheiten“.</p>
      </div>

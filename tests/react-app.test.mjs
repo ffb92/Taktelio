@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {JSDOM} from 'jsdom';
 const dom=new JSDOM('<!doctype html><html><body></body></html>',{url:'https://example.com/'});
-for(const name of ['window','document','HTMLElement','HTMLInputElement','Event','location','history','localStorage','sessionStorage'])Object.defineProperty(globalThis,name,{value:dom.window[name],configurable:true,writable:true});
+for(const name of ['window','document','HTMLElement','HTMLInputElement','Event','CustomEvent','KeyboardEvent','MouseEvent','PointerEvent','Element','Node','location','history','localStorage','sessionStorage','MutationObserver'])Object.defineProperty(globalThis,name,{value:dom.window[name],configurable:true,writable:true});
 Object.defineProperty(globalThis,'navigator',{value:dom.window.navigator,configurable:true});
+Object.defineProperty(globalThis,'getComputedStyle',{value:dom.window.getComputedStyle.bind(dom.window),configurable:true,writable:true});
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const React=(await import('react')).default;
 const {render,screen,fireEvent,waitFor,cleanup}=await import('@testing-library/react');
@@ -37,7 +38,27 @@ test('new members must create a club before training and navigation become avail
  try{mockBackend([]);render(React.createElement(App));await login();await screen.findByRole('button',{name:'Verein anlegen'});assert.equal(screen.queryByRole('navigation',{name:'Training'}),null);assert.equal(screen.queryByRole('navigation',{name:'Hauptnavigation'}),null)}finally{cleanup();globalThis.fetch=realFetch;localStorage.clear()}
 });
 test('club switching scopes requests and logout clears all club UI',async()=>{
- try{const calls=mockBackend([clubA,clubB]);render(React.createElement(App));await login();await screen.findByRole('button',{name:'KI-Training erstellen'});fireEvent.click(screen.getByRole('button',{name:'Profil & Verein'}));await screen.findByDisplayValue('Verein A');fireEvent.change(screen.getByLabelText('Verein wechseln'),{target:{value:clubB.id}});await screen.findByDisplayValue('Verein B');await waitFor(()=>assert.ok(calls.some(c=>c.path==='/api/exercises'&&c.options.headers['x-workspace-id']===clubB.id)));fireEvent.click(screen.getByRole('button',{name:'Abmelden'}));await screen.findByRole('button',{name:'Anmelden',exact:true});assert.equal(screen.queryByRole('button',{name:'Profil & Verein'}),null);assert.equal(screen.queryByRole('button',{name:'KI-Training erstellen'}),null)}finally{cleanup();globalThis.fetch=realFetch;localStorage.clear()}
+ try{
+  const calls=mockBackend([clubA,clubB]);render(React.createElement(App));await login();await screen.findByRole('button',{name:'KI-Training erstellen'});
+  const openMenu=async()=>{fireEvent.pointerDown(screen.getByRole('button',{name:'Konto-Menü'}),{button:0,ctrlKey:false,pointerType:'mouse'});return screen.findByRole('menu')};
+  await openMenu();
+  assert.ok(screen.getByRole('menuitem',{name:'Profil'}));assert.ok(screen.getByRole('menuitem',{name:'Mannschaft'}));
+  fireEvent.click(screen.getByRole('menuitem',{name:'Verein'}));
+  await screen.findByDisplayValue('Verein A');
+  assert.equal(screen.queryByRole('heading',{name:'Persönliche Angaben'}),null);
+  await openMenu();fireEvent.click(screen.getByRole('menuitem',{name:'Profil'}));
+  await screen.findByRole('heading',{name:'Persönliche Angaben'});
+  fireEvent.change(screen.getByLabelText('Verein wechseln'),{target:{value:clubB.id}});
+  await waitFor(()=>assert.ok(calls.some(c=>c.path==='/api/exercises'&&c.options.headers['x-workspace-id']===clubB.id)));
+  await openMenu();fireEvent.click(screen.getByRole('menuitem',{name:'Verein'}));
+  await screen.findByDisplayValue('Verein B');
+  await openMenu();fireEvent.click(screen.getByRole('menuitem',{name:'Profil'}));
+  await screen.findByRole('heading',{name:'Persönliche Angaben'});
+  assert.equal(screen.queryByRole('button',{name:'Abmelden'}),null);
+  await openMenu();fireEvent.click(screen.getByRole('menuitem',{name:'Abmelden'}));
+  await screen.findByRole('button',{name:'Anmelden',exact:true});
+  assert.equal(screen.queryByRole('button',{name:'Konto-Menü'}),null);assert.equal(screen.queryByRole('button',{name:'KI-Training erstellen'}),null);
+ }finally{cleanup();globalThis.fetch=realFetch;localStorage.clear()}
 });
 test('players see their team events and respond without the trainer planner',async()=>{
  const playerClub={...clubA,role:'player'};
@@ -60,6 +81,10 @@ test('players see their team events and respond without the trainer planner',asy
   await screen.findByRole('heading',{name:'Termine und Anwesenheit'});
   assert.equal(screen.queryByRole('button',{name:'KI-Training erstellen'}),null);
   assert.ok(screen.getByRole('button',{name:'Termine'}));
+  fireEvent.pointerDown(screen.getByRole('button',{name:'Konto-Menü'}),{button:0,ctrlKey:false,pointerType:'mouse'});
+  assert.ok(await screen.findByRole('menuitem',{name:'Verein'}));
+  assert.equal(screen.queryByRole('menuitem',{name:'Mannschaft'}),null);
+  fireEvent.keyDown(screen.getByRole('menu'),{key:'Escape'});
   await screen.findByText('Abschlusstraining');
   fireEvent.click(screen.getByRole('button',{name:'Zusage'}));
   await waitFor(()=>{const call=calls.find(c=>c.path==='/api/events/respond');assert.ok(call);assert.deepEqual(JSON.parse(call.options.body),{eventId:event.id,status:'accepted',note:''})});

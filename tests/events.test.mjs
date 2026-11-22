@@ -30,7 +30,10 @@ function stub({role='trainer',eventGet=[],eventPost=[{id:eventId}],eventPatch=[{
    return Response.json(eventGet);
   }
   if(target.includes('/rest/v1/team_members')){
-   if(method==='GET')return Response.json(teamMembers);
+   if(method==='GET'){
+    // Die API fragt gezielt nach Coach-Zeilen; der Stub bildet das nach.
+    return Response.json(target.includes('role=eq.coach')?teamMembers.filter(m=>m.role==='coach'||m.team_role==='coach'):teamMembers);
+   }
    return Response.json(null);
   }
   if(target.includes('/rest/v1/teams')){
@@ -129,6 +132,43 @@ test('team management is closed to players and scoped to the session workspace',
   const write=calls.find(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/teams'));
   assert.equal(write.body.workspace_id,ws);
   assert.equal(write.body.created_by,'user-a');
+  // Wer eine Mannschaft anlegt, wird ihr Trainer.
+  const membership=calls.find(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/team_members'));
+  assert.equal(membership.body.user_id,'user-a');
+  assert.equal(membership.body.role,'coach');
+ });
+});
+
+test('only a club administrator assigns a coach to a team',async()=>{
+ const memberId='55555555-5555-4555-8555-555555555555';
+ await withStub({role:'admin'},async calls=>{
+  assert.equal((await teamsApi(req('/api/teams',{action:'addMember',teamId,userId:memberId,role:'coach'}))).status,200);
+  const write=calls.find(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/team_members'));
+  assert.equal(write.body.role,'coach');
+ });
+ await withStub({role:'trainer'},async calls=>{
+  const response=await teamsApi(req('/api/teams',{action:'addMember',teamId,userId:memberId,role:'coach'}));
+  assert.equal(response.status,403);
+  assert.ok(!calls.some(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/team_members')));
+ });
+ await withStub({role:'trainer'},async calls=>{
+  assert.equal((await teamsApi(req('/api/teams',{action:'addMember',teamId,userId:memberId,role:'player'}))).status,200);
+  const write=calls.find(c=>c.method==='POST'&&c.url.endsWith('/rest/v1/team_members'));
+  assert.equal(write.body.role,'player');
+ });
+});
+
+test('a trainer may manage only events of teams they coach',async()=>{
+ const event={id:eventId,workspace_id:ws,team_id:teamId,created_by:'coach',kind:'training',title:'Training',starts_at:'2099-01-01T18:00:00Z',ends_at:null,meet_at:null,location:'',notes:'',response_deadline:null,cancelled_at:null,created_at:'2099-01-01T00:00:00Z',updated_at:'2099-01-01T00:00:00Z'};
+ await withStub({role:'trainer',eventGet:[event],teamMembers:[{team_id:teamId,user_id:'user-a',name:'Alex',email:'a@example.com',team_role:'coach'},{team_id:teamId,user_id:'user-b',name:'Bea',email:null,team_role:'player'}],teamGet:[{id:teamId,name:'U13'}]},async()=>{
+  const data=await (await eventsApi(req('/api/events',undefined,{method:'GET'}))).json();
+  assert.equal(data.canManage,true);
+  assert.equal(data.events[0].canManage,true);
+ });
+ await withStub({role:'trainer',eventGet:[event],teamMembers:[{team_id:teamId,user_id:'user-b',name:'Bea',email:null,team_role:'player'}],teamGet:[{id:teamId,name:'U13'}]},async()=>{
+  const data=await (await eventsApi(req('/api/events',undefined,{method:'GET'}))).json();
+  assert.equal(data.canManage,false);
+  assert.equal(data.events[0].canManage,false);
  });
 });
 

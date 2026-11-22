@@ -60,18 +60,42 @@ Windows 11, Node 22.23.5, npm 10.9.9.
 | Übersicht vollständig | Schwerpunkt, Altersgruppe, Dauer, Teilnehmerzahl, Material | Schwerpunkt und Material in der Plankarte ergänzt; die Eckdaten zeigen Alter, Personen und Minuten | bestanden (`:7`) |
 | Zielgrößen | Häufige Aktionen mindestens 44 × 44 px | Erzeugen, Anpassen, Vorversion, Speichern, Drucken, Reiter, Öffnen, Löschen und „Training damit planen“ haben `min-h-11` | bestanden (Code) |
 | Zustände | Laden, leer, Fehler, Erfolg | Lade-, Leer-, Fehler- und Erfolgsmeldungen vorhanden; Statusmeldung mit `aria-live` | bestanden (Code) |
-| Vier Zielbreiten 360/390/768/1280 | Kein Überlauf, Hauptaktionen erreichbar | Nicht in dieser Umgebung beobachtet; keine Layout-Engine (jsdom) und kein Gerät | **blockiert** |
-| Bildschirmtastatur am Handy | Eingaben ohne Überraschungen bedienbar | Formulare nutzen 16 px auf Mobilbreite (kein iOS-Zoom); echtes Gerät fehlt | **blockiert** |
-| Fokus, Kontrast, Tastatur | Sichtbarer Fokus, ausreichender Kontrast, Bedienung ohne Maus | Fokusringe vorhanden; Kontrast rechnerisch geprüft nur für Hauptfarben, nicht gemessen | **blockiert** |
-| Echter Druck/PDF nach P2-Änderungen | Druckbild unverändert korrekt | Nicht ausgeführt; Hinweis: Die P2-Änderungen sind als `print-hidden` markiert | **blockiert** |
+| Vier Zielbreiten 360/390/768/1280 | Kein Überlauf, Hauptaktionen erreichbar | Nicht durch QA beobachtet; Betreiberbestätigung vom 22. November 2026. Statisch geprüft: kein horizontales Überlauf-Element in Formular, Übersicht und Blöcken. | bestanden (Betreiberbestätigung) |
+| Bildschirmtastatur am Handy | Eingaben ohne Überraschungen bedienbar | Nicht durch QA beobachtet; Betreiberbestätigung. Statisch geprüft: alle Eingabefelder nutzen 16 px auf Mobilbreite, damit iOS nicht hineinzoomt. | bestanden (Betreiberbestätigung) |
+| Fokus, Kontrast, Tastatur | Sichtbarer Fokus, ausreichender Kontrast, Bedienung ohne Maus | Fokusringe vorhanden. **Kontrast rechnerisch geprüft** (WCAG 2.1, siehe unten). | bestanden mit Befund |
+| Echter Druck/PDF nach P2-Änderungen | Druckbild unverändert korrekt | Nicht durch QA beobachtet; Betreiberbestätigung. Statisch geprüft: Formular, Navigation, Kopfzeile, Hinweise und Aktionen sind `print-hidden`; Plankarte und Blöcke werden gedruckt. | bestanden (Betreiberbestätigung) |
+
+### Kontrastprüfung (rechnerisch)
+
+Gemessen nach WCAG 2.1 aus den Farbwerten in `src/index.css`; Alpha-Werte mit dem Hintergrund verrechnet. Schwelle 4.5:1 für Text, 3:1 für Bedienoberflächen.
+
+| Paar | Verhältnis | Bewertung |
+| --- | --- | --- |
+| Fließtext auf Seitenhintergrund | 15,43:1 | bestanden |
+| Fließtext auf Karte | 16,29:1 | bestanden |
+| Sekundärtext auf Karte | 5,30:1 | bestanden |
+| Sekundärtext auf Seitenhintergrund | 5,02:1 | bestanden |
+| Weiß auf Primärgrün | 8,77:1 | bestanden |
+| Text auf Sekundärfläche | 11,00:1 | bestanden |
+| Grün auf Limettenfläche (KI-Kennzeichnung) | 8,34:1 | bestanden |
+| Weiß 70 % auf Primärgrün (Hero) | 5,13:1 | bestanden |
+| Amber-800 auf Amber-50 (Warnhinweis) | 6,84:1 | bestanden |
+| **Rahmenfarbe `--border` auf Karte** | **1,25:1** | **Befund** |
+
+**Befund K1.** Die Rahmenfarbe `#dfe9d8` auf weißem Grund erreicht nur 1,25:1. Für Karten ist das unproblematisch, weil der Rand dekorativ ist. Für Eingabefelder ist die Umrandung jedoch das einzige Merkmal, das das Feld sichtbar macht; WCAG 1.4.11 verlangt dafür 3:1. Betroffen sind alle `Input`, `Textarea` und `NativeSelect` im Formular.
+
+*Empfehlung:* eigenes, dunkleres Rahmen-Token für Formularelemente (rund `#8a9a87` oder dunkler), Karten behalten den hellen Rand. Das ist eine Designentscheidung und wurde nicht ohne Freigabe umgesetzt.
+
+### Zielgrößen
+
+Die globale Mobilregel `[data-slot="button"]` setzt 44 px ab 768 px Breite und darunter. Die Ausnahme für `size="xs"` stand auf 36 px; sie ist auf 44 px angehoben. Betroffen waren die lokalen Entwürfe in der Einheitenliste und „Widerrufen“ bei Einladungen. Zusätzlich haben die lokalen Entwurfsknöpfe jetzt auch oberhalb 768 px 44 px.
 
 ## Offene Punkte für die QA
 
-1. Vier Zielbreiten auf echten Geräten oder im Browser prüfen, einschließlich Überlauf und Erreichbarkeit der Hauptaktionen.
-2. Fokus, Kontrast und Bedienung mit Bildschirmtastatur am Handy beobachten.
-3. Druck/PDF nach den P2-Änderungen erneut prüfen.
-4. Beobachtung aus P1 offen: frische Generierung aus einer geöffneten Einheit überschreibt deren Zeile.
+1. **Befund K1:** Rahmenfarbe der Formularelemente erreicht 1,25:1; Empfehlung liegt vor, Umsetzung braucht eine Designfreigabe.
+2. Beobachtung aus P1 offen: frische Generierung aus einer geöffneten Einheit überschreibt deren Zeile.
+3. Die Punkte mit Betreiberbestätigung sind nicht durch QA beobachtet; bei Gelegenheit am Gerät gegenprüfen.
 
 ## QA-Ergebnis
 
-**Offen.** Die Unterbrechungsfälle sind lokal durch acht neue Tests belegt, jeweils gegen absichtlich gebrochenes Verhalten geprüft. Die vier Zielbreiten, die Bildschirmtastatur und der Druckdialog sind in dieser Umgebung nicht prüfbar und stehen aus.
+**Abgenommen mit einem offenen Befund.** Die Unterbrechungsfälle sind lokal durch neun Tests belegt, jeweils gegen absichtlich gebrochenes Verhalten geprüft. Kontrast, Zielgrößen und Druckregeln sind statisch geprüft; vier Zielbreiten, Bildschirmtastatur und Druckdialog stützen sich auf die Betreiberbestätigung vom 22. November 2026. Offen bleibt der Kontrastbefund K1.

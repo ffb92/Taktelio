@@ -51,7 +51,7 @@ async function load(ctx,options){
   if(!byEvent.has(response.event_id))byEvent.set(response.event_id,[]);
   byEvent.get(response.event_id).push(response);
  }
- const canManage=ctx.role!=='player';
+ const isAdmin=['owner','admin'].includes(ctx.role);
  return rows.map(row=>{
   const group=byTeam.get(row.team_id)||[], answered=byEvent.get(row.id)||[];
   const summary={accepted:0,declined:0,maybe:0};
@@ -61,6 +61,8 @@ async function load(ctx,options){
   summary.total=group.length;
   const mine=answered.find(r=>r.user_id===ctx.user.id)||null;
   const rosterRole=group.find(person=>person.user_id===ctx.user.id);
+  // Verwalten darf, wer Administrator ist oder diese Mannschaft betreut.
+  const canManage=isAdmin||rosterRole?.team_role==='coach';
   return {
    id:row.id,teamId:row.team_id,teamName:teamName.get(row.team_id)||'Mannschaft',
    kind:row.kind,title:row.title,startsAt:row.starts_at,endsAt:row.ends_at,meetAt:row.meet_at,
@@ -89,7 +91,10 @@ export async function eventsApi(request){
     const to=url.searchParams.has('to')?isoInstant(url.searchParams.get('to')):new Date(now+365*DAY).toISOString();
     if(!from||!to||Date.parse(from)>=Date.parse(to))return json({error:'Ungültiger Zeitraum.'},400);
     if(Date.parse(to)-Date.parse(from)>2*366*DAY)return json({error:'Zeitraum höchstens zwei Jahre.'},400);
-    return json({role:ctx.role,canManage:ctx.role!=='player',events:await load(ctx,{from,to})});
+    // Anlegen dürfen Administratoren und Trainer mit mindestens einer eigenen Mannschaft.
+    const coached=ctx.role==='player'?[]:await cloudQuery(ctx,'team_members?user_id=eq.'+ctx.user.id+'&role=eq.coach&select=team_id');
+    const canManage=['owner','admin'].includes(ctx.role)||coached.length>0;
+    return json({role:ctx.role,canManage,events:await load(ctx,{from,to})});
    }
    if(path==='/api/events/attendance'){
     const eventId=url.searchParams.get('eventId');

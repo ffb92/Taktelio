@@ -78,7 +78,7 @@ export default function Club({workspaceId,onRename}){
    <div className="px-5 py-5">
     <h3 className="flex items-center gap-2 text-sm font-semibold"><Link2 className="size-4 text-primary"/>Einladungen</h3>
     <div className="mt-3 space-y-2">
-     {club.invitations.map(i=>{const state=i.accepted_at?'Angenommen':i.revoked_at?'Widerrufen':Date.parse(i.expires_at)<Date.now()?'Abgelaufen':'Offen';const teamName=teams.find(t=>t.id===i.team_id)?.name;return <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2.5" key={i.id}><span className="min-w-0 truncate text-sm">{i.email} · {(i.role||'trainer')==='player'?'Spieler':'Trainer'}{teamName?` · ${teamName}`:''} · {state}</span>{state==='Offen'&&<Button variant="outline" size="xs" disabled={busy} onClick={()=>run(async()=>{await request('/api/club/revoke',{id:i.id});await reload()})}>Widerrufen</Button>}</div>})}
+     {club.invitations.map(i=>{const state=i.accepted_at?'Angenommen':i.revoked_at?'Widerrufen':Date.parse(i.expires_at)<Date.now()?'Abgelaufen':'Offen';const teamName=teams.find(t=>t.id===i.team_id)?.name;return <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2.5" key={i.id}><span className="min-w-0 truncate text-sm">{i.email} · {(i.role||'trainer')==='player'?'Spieler':'Trainer'}{teamName?` · ${teamName}`:''} · {state}</span>{state==='Offen'&&<Button variant="outline" size="xs" className="min-h-11" disabled={busy} onClick={()=>run(async()=>{await request('/api/club/revoke',{id:i.id});await reload()})}>Widerrufen</Button>}</div>})}
      {!club.invitations.length&&<p className="text-xs text-muted-foreground">Noch keine Einladung erstellt.</p>}
     </div>
    </div>

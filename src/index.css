@@ -152,6 +152,7 @@
   }
 
   [data-slot="button"][data-size="xs"] {
-    min-height: 2.25rem;
+    /* Auch kleine Aktionsknöpfe brauchen am Handy 44 px Trefferfläche. */
+    min-height: 2.75rem;
   }
 }

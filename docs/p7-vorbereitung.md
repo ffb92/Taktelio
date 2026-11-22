@@ -14,10 +14,12 @@ Dieses Dokument bereitet die Abnahme nach [pilot-qa.md](pilot-qa.md) vor. Es ent
 
 | Punkt | Stand | Verantwortlich |
 | --- | --- | --- |
-| Drei neue Migrationen auf der Testdatenbank | **offen.** `20261122170000_team_coach_scope.sql`, `20261122180000_event_idempotency.sql`, `20261122190000_event_training_plan.sql` | Betreiber |
+| Drei neue Migrationen | **erledigt am 22. November 2026** auf dem Produktionsprojekt; es gibt keine getrennte Testdatenbank. Einzelheiten und Risiken: [Migrationsprotokoll](migration-2026-11-22.md) | — |
+| Code zum Migrationsstand deployen | **offen.** Produktion läuft auf `de0877a`; der Branch `feature/account-menu` enthält die passende Oberfläche und API. Ohne Deploy passen Oberfläche und Datenbank nicht zusammen. | Betreiber |
+| Trainer den Mannschaften zuordnen | **offen.** Ohne Zuordnung können Trainer keine Termine mehr verwalten. Prüfabfrage im [Migrationsprotokoll](migration-2026-11-22.md) | Administrator |
 | App auf der Testadresse erreichbar | offen | Betreiber |
 | E-Mail-Versand (Bestätigung, Reset) | laut Betreiber eingerichtet; im Test erneut prüfen | Betreiber |
-| Ein separater Testverein, nicht der Pilotverein | offen | Betreiber |
+| Ein separater Testverein, nicht der Pilotverein | offen. Empfohlen, solange keine eigene Testdatenbank existiert: ein zweiter Verein in der Produktionsdatenbank, damit die Pilotdaten unberührt bleiben. | Betreiber |
 
 **Wichtig:** Auf der Testdatenbank sind diese drei Migrationen Pflicht. Ohne sie fehlen Mannschaftsgrenze, Idempotenz und Planbezug, und der Pflichtfall unten schlägt zwangsläufig fehl.
 
@@ -202,10 +204,9 @@ Bleibt einer dieser Punkte offen, ist die Pilotentscheidung negativ oder aufschi
 
 | Punkt | Art |
 | --- | --- |
-| Drei Migrationen auf die Testdatenbank anwenden | Betreiber |
-| Testkonten und Testverein anlegen | Betreiber |
+| Branch deployen, damit Oberfläche und Datenbank zusammenpassen | Betreiber, **vor allem anderen** |
 | Trainer den Mannschaften zuordnen | Administrator im Testverein |
-| Hinweis an bestehende Trainer zur Zuordnung vorbereiten | Betreiber |
+| Testverein und Konten anlegen | Betreiber |
 | Kontrastbefund K1 entscheiden (Rahmenfarbe Formularfelder) | Design |
 
 ## Gesamtstatus
